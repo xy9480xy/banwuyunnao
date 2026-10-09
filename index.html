@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>班务云脑 · 智能班级管理中枢</title>
+<style>
+:root{
+  --bg:#070d1b; --panel:#0e1630; --panel2:#131d3d; --line:#1e2a52; --line2:#2a3a6e;
+  --cyan:#22d3ee; --blue:#3b82f6; --violet:#8b5cf6; --green:#34d399; --amber:#fbbf24; --red:#f87171; --pink:#f472b6;
+  --text:#e2e8f0; --text2:#94a3b8; --text3:#64748b;
+  --glow:0 0 18px rgba(34,211,238,.28); --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:radial-gradient(1200px 600px at 80% -10%,rgba(59,130,246,.14),transparent),radial-gradient(900px 500px at -10% 110%,rgba(139,92,246,.12),transparent),var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#243258;border-radius:4px}
+.app{max-width:1280px;margin:0 auto;padding:16px}
+/* 顶栏 */
+.topbar{display:flex;align-items:center;gap:16px;background:linear-gradient(120deg,rgba(14,22,48,.92),rgba(19,29,61,.92));border:1px solid var(--line2);border-radius:var(--radius);padding:16px 22px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35)}
+.topbar::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--cyan),var(--violet));box-shadow:var(--glow)}
+.topbar::after{content:"";position:absolute;right:-60px;top:-80px;width:240px;height:240px;background:radial-gradient(circle,rgba(34,211,238,.16),transparent 70%);border-radius:50%}
+.logo{display:flex;align-items:center;gap:14px;z-index:1}
+.logo .icon{width:48px;height:48px;background:linear-gradient(135deg,rgba(34,211,238,.2),rgba(139,92,246,.25));border:1px solid rgba(34,211,238,.45);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:var(--glow)}
+.topbar h1{font-size:20px;font-weight:700;letter-spacing:1px;background:linear-gradient(90deg,var(--cyan),var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.topbar p{font-size:12px;color:var(--text2)}
+.topbar .status{margin-left:auto;display:flex;align-items:center;gap:10px;z-index:1}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar .badge{border:1px solid rgba(34,211,238,.4);color:var(--cyan);padding:5px 14px;border-radius:20px;font-size:12px;background:rgba(34,211,238,.08)}
+/* 导航 */
+.nav{display:flex;gap:6px;margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:6px;flex-wrap:wrap}
+.nav button{border:1px solid transparent;background:transparent;padding:10px 15px;border-radius:10px;cursor:pointer;font-size:14px;color:var(--text2);font-weight:500;display:flex;align-items:center;gap:7px;transition:.2s;font-family:inherit;white-space:nowrap}
+.nav button:hover{color:var(--cyan);background:rgba(34,211,238,.08)}
+.nav button.active{background:linear-gradient(135deg,rgba(34,211,238,.18),rgba(59,130,246,.18));border-color:rgba(34,211,238,.5);color:var(--cyan);box-shadow:0 0 14px rgba(34,211,238,.18)}
+.nav button svg{width:16px;height:16px}
+/* 视图/卡片 */
+.view{display:none;margin-top:14px;animation:fade .3s}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;position:relative}
+.card:hover{border-color:var(--line2)}
+.card h3{font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px;color:var(--cyan)}
+.card h3 svg{width:17px;height:17px}
+.card .sub{font-size:12px;color:var(--text2);margin-bottom:12px}
+/* 大屏数字 */
+.kpi{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;right:-30px;bottom:-30px;width:90px;height:90px;background:radial-gradient(circle,rgba(34,211,238,.12),transparent 70%);border-radius:50%}
+.kpi .num{font-size:30px;font-weight:800;font-family:"Consolas",monospace;background:linear-gradient(90deg,var(--cyan),var(--blue));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.kpi .label{font-size:12px;color:var(--text2)}
+.kpi .trend{font-size:11px;margin-top:4px}
+/* 表单 */
+label{display:block;font-size:12px;color:var(--text2);margin:10px 0 5px}
+input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--line2);border-radius:9px;font-size:14px;outline:none;background:rgba(7,13,27,.6);color:var(--text);font-family:inherit;transition:.2s}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12)}
+select option{background:#0e1630}
+textarea{resize:vertical;min-height:70px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;border:none;padding:10px 18px;border-radius:9px;font-size:14px;cursor:pointer;font-weight:500;font-family:inherit;box-shadow:0 4px 16px rgba(34,211,238,.25);transition:.2s}
+.btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.outline{background:transparent;color:var(--cyan);border:1px solid rgba(34,211,238,.5);box-shadow:none}
+.btn.ghost{background:rgba(34,211,238,.1);color:var(--cyan);border:1px solid transparent;box-shadow:none}
+.btn.violet{background:linear-gradient(135deg,#7c3aed,#4f46e5);box-shadow:0 4px 16px rgba(139,92,246,.25)}
+.btn.danger{background:transparent;color:var(--red);border:1px solid rgba(248,113,113,.4);box-shadow:none}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn-block{width:100%;margin-top:14px}
+/* 标签 */
+.tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(34,211,238,.12);color:var(--cyan);border:1px solid rgba(34,211,238,.25);margin:2px}
+.tag.green{background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.3)}
+.tag.amber{background:rgba(251,191,36,.12);color:var(--amber);border-color:rgba(251,191,36,.3)}
+.tag.red{background:rgba(248,113,113,.12);color:var(--red);border-color:rgba(248,113,113,.3)}
+.tag.violet{background:rgba(139,92,246,.14);color:var(--violet);border-color:rgba(139,92,246,.3)}
+.tag.pink{background:rgba(244,114,182,.12);color:var(--pink);border-color:rgba(244,114,182,.3)}
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:rgba(34,211,238,.08);color:var(--cyan);text-align:left;padding:9px 10px;font-weight:600;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);color:var(--text2)}
+tr:hover td{background:rgba(34,211,238,.04);color:var(--text)}
+td .name{color:var(--text);font-weight:600}
+/* 进度条 */
+.bar-row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.bar-row .label{width:78px;font-size:12px;color:var(--text2);text-align:right;flex-shrink:0}
+.bar-track{flex:1;height:18px;background:rgba(7,13,27,.7);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;font-size:10px;color:#04121f;font-weight:700;transition:width .8s}
+/* 输出区 */
+.output{background:rgba(7,13,27,.55);border:1px solid var(--line2);border-radius:12px;padding:16px;margin-top:14px;display:none}
+.output.show{display:block;animation:fade .3s}
+.output h4{color:var(--cyan);font-size:14px;margin-bottom:10px}
+.block{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.block b{color:var(--cyan)}
+.block ul{margin:5px 0 0 18px}
+.block li{margin:3px 0;font-size:13px;color:var(--text2)}
+.loading{display:none;text-align:center;padding:26px}
+.loading.show{display:block}
+.spinner{width:34px;height:34px;border:3px solid rgba(34,211,238,.2);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;box-shadow:var(--glow)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:var(--text2);font-size:12px}
+/* 对话 */
+.chat-box{height:400px;overflow-y:auto;background:rgba(7,13,27,.5);border:1px solid var(--line2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:80%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.7;animation:fade .3s}
+.msg.ai{background:var(--panel2);border:1px solid var(--line2);border-top-left-radius:4px;align-self:flex-start}
+.msg.user{background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;border-top-right-radius:4px;align-self:flex-end}
+.msg .sender{font-size:10px;opacity:.6;margin-bottom:3px;font-weight:700}
+.chat-input{display:flex;gap:8px;margin-top:10px}
+.chat-input input{flex:1}
+.chat-quick{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.chat-quick button{background:var(--panel2);border:1px solid var(--line2);padding:5px 11px;border-radius:20px;font-size:11px;cursor:pointer;color:var(--text2);font-family:inherit;transition:.2s}
+.chat-quick button:hover{border-color:var(--cyan);color:var(--cyan)}
+/* 座位表 */
+.seat-map{display:grid;gap:8px;margin-top:12px}
+.seat{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px 6px;text-align:center;font-size:12px;position:relative;transition:.15s;cursor:grab;user-select:none}
+.seat:active{cursor:grabbing}
+.seat.dragging{opacity:.4;border-color:var(--cyan)!important;box-shadow:var(--glow)}
+.seat.drag-over{border-color:var(--cyan)!important;border-style:dashed;background:rgba(34,211,238,.12)}
+.seat.drag-over .sn{color:var(--cyan)}
+.seat:hover{border-color:var(--cyan);box-shadow:var(--glow)}
+.seat .sn{font-weight:700;color:var(--text);font-size:13px}
+.seat .si{font-size:10px;color:var(--text3);margin-top:2px}
+.seat.girl{border-left:3px solid var(--pink)}
+.seat.boy{border-left:3px solid var(--cyan)}
+.seat.warn{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.35)}
+.seat .tag-min{position:absolute;top:4px;right:6px;font-size:9px;color:var(--amber)}
+/* 驾驶舱布局 */
+.board{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+.ring-wrap{text-align:center;padding:8px 0}
+.ring-val{font-size:24px;font-weight:800;font-family:monospace;color:var(--cyan)}
+.ring-lab{font-size:11px;color:var(--text2)}
+.rank-list{display:flex;flex-direction:column;gap:6px}
+.rank-item{display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--panel2);border-radius:9px;border:1px solid var(--line)}
+.rank-item .rk{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:rgba(34,211,238,.15);color:var(--cyan)}
+.rank-item:nth-child(1) .rk{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#3a2b04}
+.rank-item:nth-child(2) .rk{background:linear-gradient(135deg,#cbd5e1,#94a3b8);color:#1e293b}
+.rank-item:nth-child(3) .rk{background:linear-gradient(135deg,#f59e0b,#d97706);color:#3a2b04}
+.rank-item .nm{flex:1;font-size:13px;color:var(--text);font-weight:600}
+.rank-item .sc{font-size:14px;font-weight:800;font-family:monospace;color:var(--cyan)}
+/* 模态 */
+.modal-mask{position:fixed;inset:0;background:rgba(3,7,18,.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-mask.show{display:flex;animation:fade .25s}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:16px;max-width:720px;width:100%;max-height:86vh;overflow-y:auto;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.modal h3{font-size:16px;margin-bottom:12px;color:var(--cyan)}
+.modal .close{float:right;background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1}
+/* toast */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;z-index:999;transition:.35s;opacity:0;box-shadow:0 8px 24px rgba(34,211,238,.35)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.empty{padding:24px;text-align:center;color:var(--text3);font-size:12px}
+.footer{text-align:center;color:var(--text3);font-size:11px;padding:22px 0 10px;letter-spacing:1px}
+/* 评语 */
+.comment-item{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.comment-item .cn{font-weight:700;color:var(--cyan);font-size:13px}
+.comment-item .ct{font-size:12.5px;color:var(--text2);line-height:1.8;margin-top:5px}
+@media(max-width:960px){.g2,.g3,.g4{grid-template-columns:1fr}.board{grid-template-columns:1fr}}
+@media print{body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo">
+      <div class="icon">🧠</div>
+      <div>
+        <h1>班务云脑 · 智能班级管理中枢</h1>
+        <p>AI赋能班级治理 — 让数据看见每一个孩子</p>
+      </div>
+    </div>
+    <div class="status">
+      <span class="pulse"></span><span style="font-size:12px;color:var(--text2)" id="sys-date"></span>
+      <span class="badge">六(3)班 · 云脑在线</span>
+    </div>
+  </div>
+
+  <nav class="nav" id="nav">
+    <button data-view="home" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>智慧驾驶舱</button>
+    <button data-view="students"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>学生档案</button>
+    <button data-view="attend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>智能考勤</button>
+    <button data-view="score"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>成绩分析</button>
+    <button data-view="points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>积分银行</button>
+    <button data-view="seat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4v4H6zM14 10h4v4h-4z"/></svg>智能排座</button>
+    <button data-view="agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>AI班务助手</button>
+    <button data-view="about"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>关于作品</button>
+  </nav>
+
+  <!-- 驾驶舱 -->
+  <section class="view active" id="view-home">
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="kpi"><div class="num" id="kpi-students">0</div><div class="label">在册学生</div><div class="trend" style="color:var(--green)">班主任数字化管理</div></div>
+      <div class="kpi"><div class="num" id="kpi-attend">0%</div><div class="label">本月考勤率</div><div class="trend" style="color:var(--cyan)">AI异常自动预警</div></div>
+      <div class="kpi"><div class="num" id="kpi-avg">0</div><div class="label">班级平均分</div><div class="trend" style="color:var(--violet)">学情追踪分析</div></div>
+      <div class="kpi"><div class="num" id="kpi-points">0</div><div class="label">积分总流水</div><div class="trend" style="color:var(--amber)">行为量化德育</div></div>
+    </div>
+    <div class="board">
+      <div class="grid" style="gap:14px">
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>今日班务快报</h3>
+          <div class="sub">云脑每日自动生成班级运行摘要</div>
+          <div id="home-report"></div>
+        </div>
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/></svg>成绩分布态势</h3>
+          <div id="home-score-chart"></div>
+        </div>
+      </div>
+      <div class="grid" style="gap:14px">
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.5 13l1.5 8-5-3-5 3 1.5-8"/></svg>积分排行榜</h3>
+          <div class="rank-list" id="home-rank"></div>
+        </div>
+        <div class="card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>预警雷达</h3>
+          <div class="sub">考勤/成绩/积分多维预警</div>
+          <div id="home-alerts"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 学生档案 -->
+  <section class="view" id="view-students">
+    <div class="card" style="margin-bottom:14px">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>学生档案 · 六维素养画像</h3>
+      <div class="sub">学业 / 纪律 / 卫生 / 文体 / 劳动 / 品德 六维雷达模型，点击行查看学生画像</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input id="stu-search" placeholder="搜索姓名…" style="width:180px" oninput="renderStudents()">
+        <button class="btn sm" onclick="openStudentForm()">+ 新增学生</button>
+        <button class="btn sm outline" onclick="exportData('students')">导出档案</button>
+        <button class="btn sm ghost" onclick="seedDemo()">载入示例班级</button>
+      </div>
+      <div style="overflow-x:auto"><table id="stu-table"></table></div>
+    </div>
+  </section>
+
+  <!-- 考勤 -->
+  <section class="view" id="view-attend">
+    <div class="grid g2">
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>今日智能点名</h3>
+        <div class="sub">一键标记出勤 / 迟到 / 请假 / 缺勤，云脑自动汇总并识别连续异常</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn sm" onclick="attendAll('出勤')">全员出勤</button>
+          <button class="btn sm ghost" onclick="saveAttend()">保存今日考勤</button>
+        </div>
+        <div id="attend-list" style="max-height:360px;overflow-y:auto"></div>
+      </div>
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M9 16l2 2 4-4"/></svg>考勤统计与预警</h3>
+        <div class="sub">按学生累计统计，连续缺勤/迟到自动预警</div>
+        <div id="attend-stats"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 成绩 -->
+  <section class="view" id="view-score">
+    <div class="card" style="margin-bottom:14px">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>成绩录入</h3>
+      <div class="sub">录入各科成绩，云脑自动计算总分均分、分布态势与进退步追踪</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:120px"><label>科目</label><select id="sc-subject"><option>语文</option><option>数学</option><option>英语</option></select></div>
+        <div style="flex:1;min-width:120px"><label>考试名称</label><input id="sc-exam" placeholder="如：期中测试" value="期中测试"></div>
+        <button class="btn sm" onclick="openScoreForm()">录入成绩</button>
+        <button class="btn sm ghost" onclick="seedScore()">载入示例成绩</button>
+      </div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><h3>成绩分布</h3><div class="sub">分档人数统计</div><div id="score-dist"></div></div>
+      <div class="card"><h3>学情预警</h3><div class="sub">均分偏科/退步学生自动识别</div><div id="score-alerts"></div></div>
+    </div>
+  </section>
+
+  <!-- 积分 -->
+  <section class="view" id="view-points">
+    <div class="grid g2">
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/></svg>积分操作台</h3>
+        <div class="sub">行为量化德育：课堂表现/文明礼仪/劳动卫生/文体活动</div>
+        <label>学生</label><select id="pt-student"></select>
+        <label>行为类型</label>
+        <select id="pt-type">
+          <option value="2">课堂积极发言 +2</option>
+          <option value="3">作业优秀 +3</option>
+          <option value="5">助人为乐 +5</option>
+          <option value="5">竞赛获奖 +5</option>
+          <option value="3">劳动之星 +3</option>
+          <option value="-2">课堂纪律 -2</option>
+          <option value="-3">作业未交 -3</option>
+          <option value="-5">违纪行为 -5</option>
+        </select>
+        <label>备注（可选）</label><input id="pt-note" placeholder="如：主动帮助同学讲解题目">
+        <button class="btn btn-block" onclick="addPoints()">记录积分</button>
+        <button class="btn violet btn-block" style="margin-top:8px" onclick="genComments()">✦ AI生成期末评语</button>
+      </div>
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.5 13l1.5 8-5-3-5 3 1.5-8"/></svg>积分总榜与流水</h3>
+        <div class="sub">排行榜实时更新</div>
+        <div class="rank-list" id="points-rank" style="max-height:200px;overflow-y:auto"></div>
+        <div style="margin-top:12px;max-height:180px;overflow-y:auto" id="points-log"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>✦ AI评语生成结果</h3>
+      <div class="sub">基于积分流水+六维画像，为每位学生生成个性化期末评语</div>
+      <div class="loading" id="cm-loading"><div class="spinner"></div><p>云脑正在为全班学生撰写个性化评语…</p></div>
+      <div id="comments-out"></div>
+    </div>
+  </section>
+
+  <!-- 排座 -->
+  <section class="view" id="view-seat">
+    <div class="grid g2">
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>智能排座引擎</h3>
+        <div class="sub">多约束优化算法：身高前后递减 / 近视前置 / 男女均衡 / 学业互补 / 定期轮换</div>
+        <label>每组（列）人数</label><select id="seat-cols"><option value="4">4列×10行（40人）</option><option value="5">5列×8行（40人）</option><option value="6">6列×7行（约40人）</option></select>
+        <label>启用约束</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text2);padding:4px 0">
+          <label style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="c-height" checked style="width:auto">矮在前高在后</label>
+          <label style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="c-vision" checked style="width:auto">近视前置</label>
+          <label style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="c-balance" checked style="width:auto">男女均衡</label>
+          <label style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="c-pair" checked style="width:auto">学业互补</label>
+        </div>
+        <button class="btn btn-block" onclick="genSeats()">⚡ 云脑智能排座</button>
+        <button class="btn outline btn-block" style="margin-top:8px" onclick="exportData('seats')">导出座位表</button>
+      </div>
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>座位表（讲台在上）</h3>
+        <div class="sub" id="seat-info">生成后显示排列方案与算法说明</div>
+        <div class="seat-map" id="seat-map"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI助手 -->
+  <section class="view" id="view-agent">
+    <div class="grid g2">
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/></svg>AI班务智能体 · 云师 <button class="btn sm outline" style="margin-left:8px;padding:3px 10px;font-size:11px" onclick="openAISettings()">⚙ AI设置</button></h3>
+        <div class="sub">班级治理知识库 + 可接入免费大模型</div>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="chat-input">
+          <input id="chat-input" placeholder="问我任何班级管理问题…" onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn sm" onclick="sendChat()">发送</button>
+        </div>
+        <div class="chat-quick">
+          <button onclick="quickChat('怎么组织高效的班干部队伍？')">班干部培养</button>
+          <button onclick="quickChat('课堂纪律太乱怎么办？')">纪律管理</button>
+          <button onclick="quickChat('如何设计班级积分制度？')">积分制度</button>
+          <button onclick="quickChat('怎么开好一场家长会？')">家长会</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/></svg>能力矩阵</h3>
+        <div style="margin-top:6px">
+          <span class="tag">班级制度建设</span><span class="tag">班干部培养</span><span class="tag">课堂纪律</span><span class="tag">家校沟通</span><span class="tag">主题班会</span><span class="tag">心理关怀</span><span class="tag">后进生转化</span><span class="tag">评语撰写</span>
+        </div>
+        <div style="margin-top:16px;background:rgba(7,13,27,.5);border:1px solid var(--line2);border-radius:10px;padding:12px">
+          <b style="font-size:12px;color:var(--cyan)">💡 今日治班锦囊</b>
+          <div id="tipCard" style="margin-top:7px;font-size:12.5px;color:var(--text2);line-height:1.8"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 关于 -->
+  <section class="view" id="view-about">
+    <div class="card" style="max-width:840px;margin:0 auto">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>关于《班务云脑》</h3>
+      <div class="block"><b>作品定位</b><p style="margin-top:5px;font-size:13px;line-height:1.9;color:var(--text2)">《班务云脑》是一款面向班主任的AI智能班级管理中枢，围绕"学生档案—考勤—成绩—积分—排座—AI助手"构建班级治理数字闭环。以"云脑"为意象，寓意用数据与AI驱动班级管理从经验走向科学，让每一位班主任减负增效。</p></div>
+      <div class="block"><b>核心算法</b>
+        <ul>
+          <li>六维综合素养模型：学业/纪律/卫生/文体/劳动/品德加权评分 + Canvas雷达图画像</li>
+          <li>智能排座引擎：身高递减×近视前置×男女均衡×学业互补多约束优化</li>
+          <li>学情预警算法：考勤连续异常 + 成绩退步 + 积分负值三雷达扫描</li>
+          <li>AI评语引擎：融合积分流水与素养画像，为每生生成个性化期末评语</li>
+        </ul>
+      </div>
+      <div class="block"><b>技术特性</b>
+        <ul>
+          <li>原生 HTML / CSS / JavaScript，零外部依赖，双击即用</li>
+          <li>localStorage 本地持久化 + JSON 数据导入导出</li>
+          <li>深色科技风数据驾驶舱 + Canvas 可视化</li>
+          <li>AI班务智能体：内置治理知识库，支持一键配置免费大模型API</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">班务云脑 · 智能班级管理中枢 — AI赋能 · 数据育人</div>
+</div>
+
+<div class="modal-mask" id="modal-mask"><div class="modal" id="modal-box"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 数据层 ================= */
+var S={
+  students:JSON.parse(localStorage.getItem('bw_students')||'[]'),
+  attend:JSON.parse(localStorage.getItem('bw_attend')||'{}'),
+  scores:JSON.parse(localStorage.getItem('bw_scores')||'[]'),
+  points:JSON.parse(localStorage.getItem('bw_points')||'[]'),
+  seats:JSON.parse(localStorage.getItem('bw_seats')||null),
+  today:JSON.parse(localStorage.getItem('bw_today')||'{}'),
+  save:function(k){localStorage.setItem('bw_'+k,JSON.stringify(this[k]))}
+};
+var $=function(id){return document.getElementById(id)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show')},2400)}
+function go(v){document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active')});document.querySelectorAll('.nav button').forEach(function(b){b.classList.toggle('active',b.dataset.view===v)});$('view-'+v).classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
+document.querySelectorAll('.nav button').forEach(function(b){b.onclick=function(){go(b.dataset.view)}});
+
+/* 示例数据 */
+var SURNAMES=['陈','李','黄','林','郑','吴','杨','张','王','刘','谢','许','梁','宋','唐','许','韩','冯','邓','曹','彭','曾','肖','田','董','袁','蔡','蒋','余','杜','叶','苏','魏','吕','丁','任','沈','姚','卢','姜'];
+var GIVEN=['梓涵','子轩','浩宇','欣怡','梓萱','睿哲','雨桐','俊杰','思远','静姝','博文','若曦','明轩','嘉怡','志强','梦洁','天佑','雅琪','文博','佳琪','晨曦','子涵','雨泽','诗涵','伟宸','晓丽','海燕','志豪','慧敏','建国','雅静','子墨','思琪','宇航','可馨','雨欣','浩然','梦瑶','鑫磊','乐怡'];
+function seedDemo(){
+  S.students=[];
+  for(var i=0;i<40;i++){
+    var name=SURNAMES[i]+GIVEN[i];
+    S.students.push({
+      id:i+1,name:name,
+      gender:i%2===0?'男':'女',
+      height:128+((i*7)%28),
+      vision:(i%9===0)?'近视':'正常',
+      scores:{语文:72+((i*13)%26),数学:70+((i*17)%30),英语:75+((i*11)%22)},
+      dims:{学业:60+((i*7)%38),纪律:55+((i*11)%43),卫生:62+((i*13)%36),文体:58+((i*17)%40),劳动:65+((i*9)%33),品德:70+((i*19)%28)},
+      points:(S.points.filter(function(p){return p.id===i+1}).reduce(function(a,p){return a+p.v},0))
+    });
+  }
+  S.save('students');renderStudents();renderPointsUI();refreshAll();toast('已载入40人示例班级');
+}
+function seedScore(){
+  if(!S.students.length){toast('请先载入示例班级');return}
+  S.scores=S.students.map(function(st){return {id:st.id,name:st.name,exam:$('sc-exam').value||'期中测试',subject:$('sc-subject').value,score:st.scores[$('sc-subject').value]||75}});
+  S.save('scores');renderScore();refreshAll();toast('示例成绩已载入');
+}
+
+/* ================= 学生档案 ================= */
+function renderStudents(){
+  var q=($('stu-search').value||'').trim();
+  var list=S.students.filter(function(s){return !q||s.name.indexOf(q)>-1});
+  var h='<tr><th>学号</th><th>姓名</th><th>性别</th><th>身高</th><th>视力</th><th>总积分</th><th>综合素养</th><th>操作</th></tr>';
+  if(!list.length){$('stu-table').innerHTML=h+'<tr><td colspan="8" class="empty">暂无学生，请点击「载入示例班级」或新增学生</td></tr>';return}
+  list.forEach(function(s){
+    var total=dimsTotal(s.dims);
+    var star=total>=85?'★★★★★':total>=75?'★★★★':total>=65?'★★★':'★★';
+    h+='<tr onclick="showProfile('+s.id+')" style="cursor:pointer">'
+      +'<td>'+s.id+'</td><td><span class="name">'+esc(s.name)+'</span></td>'
+      +'<td><span class="tag '+(s.gender==='女'?'pink':'')+'">'+s.gender+'</span></td>'
+      +'<td>'+s.height+'cm</td><td>'+(s.vision==='近视'?'<span class="tag amber">近视</span>':'正常')+'</td>'
+      +'<td><b style="color:var(--cyan)">'+(getPoints(s.id))+'</b></td>'
+      +'<td style="color:var(--amber)">'+star+'</td>'
+      +'<td><button class="btn sm ghost" onclick="event.stopPropagation();showProfile('+s.id+')">画像</button></td></tr>';
+  });
+  $('stu-table').innerHTML=h;
+}
+function dimsTotal(d){var t=0;for(var k in d)t+=d[k];return Math.round(t/6)}
+function getPoints(id){return S.points.filter(function(p){return p.id===id}).reduce(function(a,p){return a+p.v},0)}
+function showProfile(id){
+  var s=S.students.find(function(x){return x.id===id});if(!s)return;
+  var m=$('modal-box');
+  var pts=S.points.filter(function(p){return p.id===id}).slice(-6);
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>'+esc(s.name)+' · 学生画像</h3>'
+    +'<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">'
+    +'<div style="text-align:center"><canvas id="pf-radar" width="260" height="260"></canvas><div style="font-size:11px;color:var(--text3)">六维素养雷达图</div></div>'
+    +'<div style="flex:1;min-width:220px">'
+    +'<div class="block"><b>基础信息</b><ul><li>性别：'+s.gender+'　身高：'+s.height+'cm</li><li>视力：'+s.vision+'</li><li>当前积分：<b style="color:var(--cyan)">'+getPoints(s.id)+'</b></li></ul></div>'
+    +'<div class="block"><b>近期积分流水</b>'+(pts.length?'<ul>'+pts.map(function(p){return '<li>'+(p.v>0?'+':'')+p.v+'　'+esc(p.note||'行为记录')+'</li>'}).join('')+'</ul>':'<ul><li>暂无记录</li></ul>')+'</div>'
+    +'</div></div>';
+  $('modal-mask').classList.add('show');
+  setTimeout(function(){drawRadar($('pf-radar'),s.dims)},50);
+}
+function openStudentForm(){
+  var m=$('modal-box');
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>新增学生</h3>'
+    +'<label>姓名</label><input id="ns-name" placeholder="学生姓名">'
+    +'<label>性别</label><select id="ns-gender"><option>男</option><option>女</option></select>'
+    +'<label>身高(cm)</label><input id="ns-height" type="number" value="135">'
+    +'<label>视力</label><select id="ns-vision"><option>正常</option><option>近视</option></select>'
+    +'<button class="btn btn-block" onclick="saveStudent()">保存</button>';
+  $('modal-mask').classList.add('show');
+}
+function saveStudent(){
+  var name=$('ns-name').value.trim();if(!name){toast('请输入姓名');return}
+  var id=S.students.length?Math.max.apply(null,S.students.map(function(s){return s.id}))+1:1;
+  S.students.push({id:id,name:name,gender:$('ns-gender').value,height:+$('ns-height').value||135,vision:$('ns-vision').value,
+    scores:{语文:78,数学:78,英语:78},
+    dims:{学业:75,纪律:75,卫生:75,文体:75,劳动:75,品德:80}});
+  S.save('students');closeModal();renderStudents();renderPointsUI();refreshAll();toast('学生已添加');
+}
+function closeModal(){$('modal-mask').classList.remove('show')}
+$('modal-mask').onclick=function(e){if(e.target===$('modal-mask'))closeModal()};
+
+/* 六维雷达图 */
+function drawRadar(cv,dims){
+  if(!cv)return;
+  var ctx=cv.getContext&&cv.getContext('2d');if(!ctx)return;
+  var keys=Object.keys(dims),n=keys.length,cx=cv.width/2,cy=cv.height/2,r=cv.width/2-40;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.strokeStyle='rgba(42,58,110,.9)';
+  for(var ring=1;ring<=4;ring++){
+    ctx.beginPath();
+    for(var i=0;i<n;i++){var a=-Math.PI/2+i*2*Math.PI/n,x=cx+r*ring/4*Math.cos(a),y=cy+r*ring/4*Math.sin(a);i?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+    ctx.closePath();ctx.stroke();
+  }
+  for(var i=0;i<n;i++){var a=-Math.PI/2+i*2*Math.PI/n;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));ctx.stroke()}
+  ctx.beginPath();
+  for(var i=0;i<n;i++){var a=-Math.PI/2+i*2*Math.PI/n,v=(dims[keys[i]]||0)/100,x=cx+r*v*Math.cos(a),y=cy+r*v*Math.sin(a);i?ctx.lineTo(x,y):ctx.moveTo(x,y)}
+  ctx.closePath();
+  ctx.fillStyle='rgba(34,211,238,.16)';ctx.fill();
+  ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.shadowColor='rgba(34,211,238,.6)';ctx.shadowBlur=8;ctx.stroke();ctx.shadowBlur=0;
+  for(var i=0;i<n;i++){
+    var a=-Math.PI/2+i*2*Math.PI/n,v=(dims[keys[i]]||0)/100;
+    ctx.beginPath();ctx.arc(cx+r*v*Math.cos(a),cy+r*v*Math.sin(a),3.5,0,7);ctx.fillStyle='#22d3ee';ctx.fill();
+    var lx=cx+(r+22)*Math.cos(a),ly=cy+(r+22)*Math.sin(a);
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(keys[i]+' '+dims[keys[i]],lx,ly);
+  }
+}
+
+/* ================= 考勤 ================= */
+function renderAttend(){
+  if(!S.students.length){$('attend-list').innerHTML='<div class="empty">请先在「学生档案」载入示例班级</div>';return}
+  var today=S.today;
+  var h=S.students.map(function(s){
+    var st=today[s.id]||'出勤';
+    var cls=st==='出勤'?'green':st==='迟到'?'amber':st==='请假'?'violet':'red';
+    return '<div class="rank-item"><span class="nm">'+esc(s.name)+'</span><div>'
+      +['出勤','迟到','请假','缺勤'].map(function(t){return '<button class="btn sm '+(t===st?'':'ghost')+'" style="margin:1px;padding:3px 9px;font-size:11px" onclick="setAttend('+s.id+',\''+t+'\')">'+t+'</button>'}).join('')
+      +'</div></div>';
+  }).join('');
+  $('attend-list').innerHTML=h;
+}
+function setAttend(id,st){S.today[id]=st;$('bw_today_dummy');renderAttend()}
+function attendAll(st){S.students.forEach(function(s){S.today[s.id]=st});renderAttend();toast('已全员标记为'+st)}
+function saveAttend(){
+  var d=new Date(),key=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+  S.attend[key]=JSON.parse(JSON.stringify(S.today));S.save('attend');
+  renderAttendStats();refreshAll();toast('今日考勤已保存并归档');
+}
+function attendStat(id){
+  var cnt={出勤:0,迟到:0,请假:0,缺勤:0},total=0;
+  for(var k in S.attend){var st=S.attend[k][id];if(st){cnt[st]++;total++}}
+  return {cnt:cnt,total:total,rate:total?Math.round((cnt['出勤']+cnt['迟到'])/total*100):100};
+}
+function renderAttendStats(){
+  if(!Object.keys(S.attend).length){$('attend-stats').innerHTML='<div class="empty">保存考勤后显示统计</div>';return}
+  var h='<table><tr><th>学生</th><th>出勤</th><th>迟到</th><th>请假</th><th>缺勤</th><th>考勤率</th><th>预警</th></tr>';
+  S.students.forEach(function(s){
+    var st=attendStat(s.id);
+    var warn=st.cnt['缺勤']>=2?'<span class="tag red">连续缺勤</span>':st.cnt['迟到']>=3?'<span class="tag amber">频繁迟到</span>':'<span class="tag green">正常</span>';
+    h+='<tr><td><span class="name">'+esc(s.name)+'</span></td><td>'+st.cnt['出勤']+'</td><td>'+st.cnt['迟到']+'</td><td>'+st.cnt['请假']+'</td><td>'+st.cnt['缺勤']+'</td><td><b style="color:var(--cyan)">'+st.rate+'%</b></td><td>'+warn+'</td></tr>';
+  });
+  h+='</table>';$('attend-stats').innerHTML=h;
+}
+
+/* ================= 成绩 ================= */
+function openScoreForm(){
+  if(!S.students.length){toast('请先载入示例班级');return}
+  var m=$('modal-box');
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>批量录入成绩 — '+esc($('sc-subject').value)+'</h3>'
+    +'<div style="max-height:420px;overflow-y:auto">'
+    +S.students.map(function(s){return '<div class="rank-item"><span class="nm">'+esc(s.name)+'</span><input type="number" id="scin-'+s.id+'" value="'+(s.scores[$('sc-subject').value]||75)+'" style="width:90px"></div>'}).join('')
+    +'</div><button class="btn btn-block" onclick="saveScores()">保存全班成绩</button>';
+  $('modal-mask').classList.add('show');
+}
+function saveScores(){
+  var sub=$('sc-subject').value,exam=$('sc-exam').value||'测试';
+  S.students.forEach(function(s){
+    var v=+$('scin-'+s.id).value||0;
+    s.scores[sub]=v;
+    S.scores.push({id:s.id,name:s.name,exam:exam,subject:sub,score:v});
+  });
+  S.save('students');S.save('scores');closeModal();renderScore();refreshAll();toast('成绩已保存');
+}
+function renderScore(){
+  if(!S.students.length){$('score-dist').innerHTML=$('score-alerts').innerHTML='<div class="empty">请先载入示例班级与成绩</div>';return}
+  var sub=$('sc-subject').value;
+  var arr=S.students.map(function(s){return s.scores[sub]||0});
+  var avg=Math.round(arr.reduce(function(a,b){return a+b},0)/arr.length);
+  var bins=[90,80,70,60,0],labs=['90-100','80-89','70-79','60-69','<60'],cnt=[0,0,0,0,0],colors=['#34d399','#22d3ee','#3b82f6','#fbbf24','#f87171'];
+  arr.forEach(function(v){for(var i=0;i<bins.length;i++){if(v>=bins[i]){cnt[i]++;break}}});
+  var h=labs.map(function(l,i){return '<div class="bar-row"><div class="label">'+l+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(cnt[i]/arr.length*100)+'%;background:linear-gradient(90deg,'+colors[i]+','+colors[i]+'aa)">'+cnt[i]+'人</div></div></div>'}).join('');
+  h+='<div style="margin-top:10px;font-size:12px;color:var(--text2)">班级平均分：<b style="color:var(--cyan);font-size:16px;font-family:monospace">'+avg+'</b>　最高：'+Math.max.apply(null,arr)+'　最低：'+Math.min.apply(null,arr)+'</div>';
+  $('score-dist').innerHTML=h;
+  /* 预警：偏科+低分 */
+  var alerts=[];
+  S.students.forEach(function(s){
+    var sc=s.scores;var vals=[sc['语文'],sc['数学'],sc['英语']].filter(Boolean);
+    if(vals.length===3){
+      var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals);
+      if(mx-mn>=20){var subs=['语文','数学','英语'];var weak=subs[vals.indexOf(mn)];alerts.push({n:s.name,t:'偏科预警',d:weak+'仅'+mn+'分，与最高科差距'+(mx-mn)+'分',lv:'amber'})}
+    }
+    if((sc[sub]||100)<60)alerts.push({n:s.name,t:'学困预警',d:sub+'成绩 '+(sc[sub])+' 分，需重点帮扶',lv:'red'});
+  });
+  var ah=alerts.length?alerts.map(function(a){return '<div class="block" style="border-left:3px solid '+(a.lv==='red'?'var(--red)':'var(--amber)')+'"><b>'+esc(a.n)+' · '+a.t+'</b><div style="font-size:12px;color:var(--text2);margin-top:3px">'+a.d+'</div></div>'}).join(''):'<div class="empty">暂无预警，班级学情平稳 ✦</div>';
+  $('score-alerts').innerHTML=ah;
+}
+
+/* ================= 积分 ================= */
+function renderPointsUI(){
+  $('pt-student').innerHTML=S.students.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>'}).join('');
+  renderPointsRank();
+}
+function addPoints(){
+  if(!S.students.length){toast('请先载入示例班级');return}
+  var id=+$('pt-student').value,v=+$('pt-type').value,note=$('pt-note').value.trim();
+  var st=S.students.find(function(s){return s.id===id});
+  S.points.push({id:id,name:st.name,v:v,note:note,t:Date.now()});
+  S.save('points');$('pt-note').value='';
+  renderPointsRank();refreshAll();toast('已为 '+st.name+' 记录 '+(v>0?'+':'')+v+' 分');
+}
+function renderPointsRank(){
+  var map={};
+  S.points.forEach(function(p){map[p.id]=map[p.id]||{name:p.name,v:0};map[p.id].v+=p.v});
+  S.students.forEach(function(s){if(!map[s.id])map[s.id]={name:s.name,v:0}});
+  var arr=Object.keys(map).map(function(k){return{id:+k,name:map[k].name,v:map[k].v}}).sort(function(a,b){return b.v-a.v});
+  var h=arr.slice(0,10).map(function(r,i){return '<div class="rank-item"><span class="rk">'+(i+1)+'</span><span class="nm">'+esc(r.name)+'</span><span class="sc">'+r.v+'</span></div>'}).join('');
+  $('points-rank').innerHTML=h||'<div class="empty">暂无积分记录</div>';
+  var logs=S.points.slice(-12).reverse();
+  $('points-log').innerHTML=logs.length?logs.map(function(p){return '<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:4px 2px;border-bottom:1px solid var(--line)"><span style="color:var(--text2)">'+esc(p.name)+' '+(p.note?('· '+esc(p.note)):'')+'</span><b style="color:'+(p.v>0?'var(--green)':'var(--red)')+'">'+(p.v>0?'+':'')+p.v+'</b></div>'}).join(''):'<div class="empty">暂无流水</div>';
+}
+/* AI评语引擎 */
+function genComments(){
+  if(!S.students.length){toast('请先载入示例班级');return}
+  $('comments-out').innerHTML='';$('cm-loading').classList.add('show');
+  setTimeout(function(){
+    var h='';
+    S.students.forEach(function(s){
+      var pts=getPoints(s.id);
+      var dims=s.dims,total=dimsTotal(dims);
+      var strong=[],weak=[];
+      for(var k in dims){if(dims[k]>=80)strong.push(k);if(dims[k]<65)weak.push(k)}
+      var level=pts>=30?'表现优异':pts>=10?'表现良好':pts>=0?'稳步成长':'需要加油';
+      var txt='你是一个'+(s.gender==='男'?'阳光开朗':'文静可爱')+'的孩子。本学期你'+(strong.length?'在'+strong.join('、')+'方面表现突出':'各方面均衡发展')+'，'
+        +(weak.length?'但在'+weak.join('、')+'方面还有提升空间':'且能保持稳定的进步节奏')+'。'
+        +(pts>=30?'你多次获得班级表彰，是同学们的好榜样！':pts>=10?'你的点滴进步老师都看在眼里，继续加油！':pts>=0?'希望你更大胆地展示自己，你会更出色！':'老师相信你能调整状态，迎头赶上！')
+        +'新学期，愿你像星辰一样，持续发光！';
+      h+='<div class="comment-item"><div class="cn">'+esc(s.name)+' <span class="tag '+(pts>=10?'green':pts>=0?'amber':'red')+'">'+level+'</span></div><div class="ct">'+txt+'</div></div>';
+    });
+    $('cm-loading').classList.remove('show');$('comments-out').innerHTML=h;toast('已为全班生成 '+S.students.length+' 份个性化评语');
+  },1200);
+}
+
+/* ================= 智能排座 ================= */
+function genSeats(){
+  if(!S.students.length){toast('请先载入示例班级');return}
+  var cols=+$('seat-cols').value;
+  var rows=Math.ceil(S.students.length/cols);
+  var stu=S.students.slice();
+  /* 约束1：身高递增（矮在前高在后） */
+  if($('c-height').checked)stu.sort(function(a,b){return a.height-b.height});
+  /* 约束2：近视前置 */
+  if($('c-vision').checked){
+    var my=stu.filter(function(s){return s.vision==='近视'}),ok=stu.filter(function(s){return s.vision!=='近视'});
+    stu=my.concat(ok);
+  }
+  /* 组装网格：蛇形排布实现男女均衡+学业互补 */
+  var grid=[];
+  for(var r=0;r<rows;r++){
+    var row=[];
+    for(var c=0;c<cols;c++){
+      var idx=r*cols+c;
+      row.push(idx<stu.length?stu[idx]:null);
+    }
+    /* 奇数行倒序，形成蛇形，男女间隔更均衡 */
+    if(r%2===1)row.reverse();
+    grid.push(row);
+  }
+  /* 约束4：学业互补——相邻位互换使强弱搭配（简化贪心） */
+  if($('c-pair').checked){
+    for(var r=0;r<rows;r++){
+      for(var c=0;c<cols-1;c+=2){
+        var a=grid[r][c],b=grid[r][c+1];
+        if(a&&b){
+          var va=dimsTotal(a.dims),vb=dimsTotal(b.dims);
+          if(Math.abs(va-vb)>30){
+            /* 与后排同类交换，让强带弱 */
+            if(r+1<rows){var d=grid[r+1][c];if(d){var vd=dimsTotal(d.dims);
+              if((va>vb&&vd<vb)||(va<vb&&vd>va)){grid[r][c]=d;grid[r+1][c]=a;}}}
+          }
+        }
+      }
+    }
+  }
+  S.seats={cols:cols,rows:rows,grid:grid.map(function(row){return row.map(function(s){return s?s.id:null})})};
+  S.save('seats');renderSeats();
+  var info='已按「'+[$('c-height').checked?'矮在前高在后':null,$('c-vision').checked?'近视前置':null,$('c-balance').checked?'蛇形男女均衡':null,$('c-pair').checked?'学业互补':null].filter(Boolean).join(' + ')+'」完成优化排座，可拖拽姓名卡片人工微调';
+  $('seat-info').textContent=info+'；共 '+cols+'列×'+rows+'行';
+  toast('智能排座完成');
+}
+function renderSeats(){
+  if(!S.seats){$('seat-map').innerHTML='<div class="empty">点击左侧「云脑智能排座」生成方案</div>';return}
+  var m=$('seat-map');m.style.gridTemplateColumns='repeat('+S.seats.cols+',1fr)';
+  var h='<div style="grid-column:1/-1;text-align:center;padding:4px;border:1px dashed var(--line2);border-radius:8px;font-size:12px;color:var(--cyan);letter-spacing:4px">—— 讲 台 ——</div>';
+  var seatIdx=0;
+  S.seats.grid.forEach(function(row,ri){
+    row.forEach(function(id,ci){
+      var pos=ri+'_'+ci;
+      if(id===null){h+='<div class="seat" style="opacity:.25" data-pos="'+pos+'" data-id="">空</div>';return}
+      var s=S.students.find(function(x){return x.id===id});
+      if(!s){h+='<div class="seat" style="opacity:.25" data-pos="'+pos+'" data-id="">—</div>';return}
+      var dm=dimsTotal(s.dims);
+      h+='<div class="seat '+(s.gender==='女'?'girl':'boy')+(s.vision==='近视'?' warn':'')+'" draggable="true" data-pos="'+pos+'" data-id="'+s.id+'">'
+        +(s.vision==='近视'?'<span class="tag-min">👁</span>':'')
+        +'<div class="sn">'+esc(s.name)+'</div><div class="si">'+s.height+'cm · 素养'+dm+'</div></div>';
+    });
+  });
+  m.innerHTML=h;
+  /* 绑定拖拽事件 */
+  m.querySelectorAll('.seat[data-id]:not([data-id=""])').forEach(function(el){
+    el.addEventListener('dragstart',function(e){
+      e.dataTransfer.setData('text/plain',el.dataset.pos);
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend',function(){
+      el.classList.remove('dragging');
+      m.querySelectorAll('.seat').forEach(function(x){x.classList.remove('drag-over')});
+    });
+  });
+  m.querySelectorAll('.seat').forEach(function(el){
+    el.addEventListener('dragover',function(e){e.preventDefault();el.classList.add('drag-over')});
+    el.addEventListener('dragleave',function(){el.classList.remove('drag-over')});
+    el.addEventListener('drop',function(e){
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      var fromPos=e.dataTransfer.getData('text/plain');
+      var toPos=el.dataset.pos;
+      if(fromPos===toPos)return;
+      /* 解析位置：行_列 */
+      var fp=fromPos.split('_'),tp=toPos.split('_');
+      var fromR=+fp[0],fromC=+fp[1],toR=+tp[0],toC=+tp[1];
+      /* 交换两个位置的id */
+      var tmp=S.seats.grid[fromR][fromC];
+      S.seats.grid[fromR][fromC]=S.seats.grid[toR][toC];
+      S.seats.grid[toR][toC]=tmp;
+      S.save('seats');
+      renderSeats();
+      toast('座位已调整');
+    });
+  });
+}
+
+/* ================= 驾驶舱 ================= */
+function refreshAll(){
+  if(!S.students.length){$('home-report').innerHTML='<div class="empty">载入示例班级后，云脑将实时生成班务快报</div>';$('home-rank').innerHTML='<div class="empty">—</div>';return}
+  $('kpi-students').textContent=S.students.length;
+  /* 考勤率 */
+  var rates=S.students.map(function(s){return attendStat(s.id).rate});
+  var avgRate=rates.length?Math.round(rates.reduce(function(a,b){return a+b},0)/rates.length):100;
+  if(!Object.keys(S.attend).length)avgRate=100;
+  $('kpi-attend').textContent=avgRate+'%';
+  /* 均分 */
+  var subs=['语文','数学','英语'];
+  var allavg=[];
+  subs.forEach(function(sub){var a=S.students.map(function(s){return s.scores[sub]||0});if(a.length)allavg.push(Math.round(a.reduce(function(x,y){return x+y},0)/a.length))});
+  $('kpi-avg').textContent=allavg.length?Math.round(allavg.reduce(function(a,b){return a+b},0)/allavg.length):'—';
+  /* 积分 */
+  var tp=S.points.reduce(function(a,p){return a+Math.abs(p.v)},0);
+  $('kpi-points').textContent=tp;
+  /* 快报 */
+  var today=S.today,cnt={出勤:0,迟到:0,请假:0,缺勤:0};
+  for(var k in today)cnt[today[k]]=(cnt[today[k]]||0)+1;
+  var done=Object.keys(today).length;
+  var alerts=[];
+  S.students.forEach(function(s){
+    var st=attendStat(s.id);
+    if(st.cnt['缺勤']>=2)alerts.push({n:s.name,d:'连续缺勤'+st.cnt['缺勤']+'次，建议家校沟通'});
+    else if(st.cnt['迟到']>=3)alerts.push({n:s.name,d:'迟到'+st.cnt['迟到']+'次，关注作息'});
+    if(getPoints(s.id)<-5)alerts.push({n:s.name,d:'积分为负，需正面引导'});
+  });
+  var h='<div class="block"><b>今日考勤</b><ul>'
+    +'<li>已点名：'+done+' / '+S.students.length+' 人</li>'
+    +'<li>出勤 '+cnt['出勤']+'　迟到 '+cnt['迟到']+'　请假 '+cnt['请假']+'　缺勤 '+cnt['缺勤']+'</li>'
+    +'</ul></div>'
+    +'<div class="block"><b>积分动态</b><ul><li>今日新增记录：'+S.points.filter(function(p){var d=new Date();var t=new Date(p.t);return t.toDateString()===d.toDateString()}).length+' 条</li><li>积分榜首：'+(topPointName()||'—')+'</li></ul></div>'
+    +'<div class="block" style="border-left:3px solid var(--green)"><b>云脑建议</b><ul><li>'+(alerts.length?'共有 '+alerts.length+' 条预警需关注（见右侧预警雷达）':'班级运行平稳，继续保持 ✦')+'</li><li>建议每周五放学后进行一次积分小结班会</li></ul></div>';
+  $('home-report').innerHTML=h;
+  /* 排行 */
+  var map={};S.points.forEach(function(p){map[p.id]=map[p.id]||{name:p.name,v:0};map[p.id].v+=p.v});
+  S.students.forEach(function(s){if(!map[s.id])map[s.id]={name:s.name,v:0}});
+  var arr=Object.keys(map).map(function(k){return{name:map[k].name,v:map[k].v}}).sort(function(a,b){return b.v-a.v}).slice(0,6);
+  $('home-rank').innerHTML=arr.map(function(r,i){return '<div class="rank-item"><span class="rk">'+(i+1)+'</span><span class="nm">'+esc(r.name)+'</span><span class="sc">'+r.v+'</span></div>'}).join('');
+  /* 预警 */
+  $('home-alerts').innerHTML=alerts.length?alerts.slice(0,6).map(function(a){return '<div class="block" style="border-left:3px solid var(--red);padding:8px 12px"><b style="font-size:12px">'+esc(a.n)+'</b><div style="font-size:11.5px;color:var(--text2)">'+a.d+'</div></div>'}).join(''):'<div class="empty">各维度运行平稳 ✦</div>';
+  /* 成绩分布简图 */
+  renderScore();
+}
+function topPointName(){
+  var map={};S.points.forEach(function(p){map[p.id]=map[p.id]||{name:p.name,v:0};map[p.id].v+=p.v});
+  var arr=Object.keys(map).map(function(k){return{name:map[k].name,v:map[k].v}}).sort(function(a,b){return b.v-a.v});
+  return arr.length?arr[0].name:null;
+}
+
+/* ================= AI班务助手 ================= */
+var AI_CFG={};
+try{AI_CFG=JSON.parse(localStorage.getItem('bw_ai_cfg')||'{}')}catch(e){AI_CFG={}}
+var AI_PRESETS=[
+  {name:'智谱AI（推荐·完全免费）',endpoint:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',tip:'手机号注册即送2000万Token，GLM-4-Flash永久免费'},
+  {name:'硅基流动（免费额度大）',endpoint:'https://api.siliconflow.cn/v1/chat/completions',model:'Qwen/Qwen2.5-7B-Instruct',tip:'注册送2000万Token；模型名必须带厂商前缀'},
+  {name:'阿里云百炼（送1000万）',endpoint:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',tip:'注册即送1000万Token'},
+  {name:'百度千帆（永久免费）',endpoint:'https://qianfan.baidubce.com/v2/chat/completions',model:'ernie-speed-8k',tip:'ERNIE-Speed永久免费'},
+  {name:'DeepSeek（官方接口）',endpoint:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',tip:'注册送体验金'},
+  {name:'Kimi·月之暗面',endpoint:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',tip:'新用户送15元代金券'}
+];
+function openAISettings(){
+  var cfg=AI_CFG||{};var m=$('modal-box');
+  var presets='<option value="">— 选择免费服务商自动填入 —</option>';
+  AI_PRESETS.forEach(function(p,i){presets+='<option value="'+i+'">'+p.name+'</option>'});
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>AI 大模型设置</h3>'
+    +'<p class="sub" style="font-size:12px;margin-bottom:10px">选择免费服务商自动填入接口与模型，再填API Key即可接入真实大模型；不配置则使用内置班务知识库。</p>'
+    +'<label>选择免费服务商</label><select id="ai-preset" onchange="applyPreset()">'+presets+'</select>'
+    +'<div id="ai-preset-tip" class="sub" style="font-size:12px;color:var(--cyan);margin-top:5px"></div>'
+    +'<label>API 接口地址</label><input id="ai-endpoint" value="'+esc(cfg.endpoint||'')+'">'
+    +'<label>API Key</label><input id="ai-key" type="password" placeholder="注册后复制Key粘贴到此" value="'+esc(cfg.key||'')+'">'
+    +'<label>模型名称</label><input id="ai-model" value="'+esc(cfg.model||'')+'">'
+    +'<div style="margin-top:14px;display:flex;gap:9px"><button class="btn" onclick="saveAICfg()">保存配置</button><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn danger" onclick="clearAICfg()">清除</button></div>'
+    +'<p class="sub" style="margin-top:10px;font-size:11px;color:var(--text3)">Key仅保存在本机浏览器，不会上传。本地双击打开受跨域限制时，可部署到静态空间后调用。</p>';
+  $('modal-mask').classList.add('show');
+}
+function applyPreset(){
+  var i=$('ai-preset').value;
+  if(i===''){$('ai-endpoint').value='';$('ai-model').value='';$('ai-preset-tip').textContent='';return}
+  var p=AI_PRESETS[+i];
+  $('ai-endpoint').value=p.endpoint;$('ai-model').value=p.model;
+  $('ai-preset-tip').textContent='💡 '+p.tip;
+}
+function saveAICfg(){
+  AI_CFG={endpoint:$('ai-endpoint').value.trim(),key:$('ai-key').value.trim(),model:$('ai-model').value.trim()};
+  localStorage.setItem('bw_ai_cfg',JSON.stringify(AI_CFG));
+  closeModal();toast('AI 配置已保存');
+}
+function clearAICfg(){AI_CFG={};localStorage.removeItem('bw_ai_cfg');closeModal();toast('已清除AI配置')}
+function sendChat(){
+  var q=$('chat-input').value.trim();if(!q)return;
+  addMsg('user',q);$('chat-input').value='';
+  if(!openReply(q)){setTimeout(function(){addMsg('ai',localAnswer(q))},600)}
+}
+function quickChat(q){addMsg('user',q);if(!openReply(q)){setTimeout(function(){addMsg('ai',localAnswer(q))},500)}}
+function openReply(q){
+  if(!AI_CFG.key||!AI_CFG.endpoint)return false;
+  addMsg('ai','云师正在思考…');
+  fetch(AI_CFG.endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+AI_CFG.key},
+    body:JSON.stringify({model:AI_CFG.model||'deepseek-chat',messages:[
+      {role:'system',content:'你是一位资深的班主任顾问「云师」，擅长班级制度建设、班干部培养、课堂纪律、家校沟通、学生心理关怀。回答专业、具体、分点、可操作，300字内。'},
+      {role:'user',content:q}],temperature:0.7,max_tokens:1024})
+  }).then(function(r){
+    return r.text().then(function(txt){
+      var d=null;try{d=JSON.parse(txt)}catch(e){}
+      if(!r.ok||!d){return {__err:'⚠ 调用失败（HTTP '+r.status+'）：'+(txt||'').slice(0,120)+'\n请检查Key有效性、服务商匹配与账户额度。'}}
+      if(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)return {__ok:d.choices[0].message.content};
+      var em=d.error?(d.error.message||d.error.code):(d.message||JSON.stringify(d).slice(0,100));
+      return {__err:'⚠ 接口返回错误：'+em+'\n常见原因：Key无效过期；模型名不匹配（硅基流动需带厂商前缀）；额度不足。'};
+    });
+  }).then(function(res){
+    removeThinking();
+    if(res&&res.__ok)addMsg('ai',res.__ok);
+    else addMsg('ai',res&&res.__err?res.__err:'调用失败，请稍后重试');
+  }).catch(function(e){
+    removeThinking();
+    addMsg('ai','⚠ 请求未能发出：'+(e&&e.message||'网络/跨域问题')+'\n本地文件跨域受限时，可部署到静态空间再调用；或清除AI配置使用内置知识库。');
+  });
+  return true;
+}
+function removeThinking(){
+  var box=$('chat-box');var msgs=box.querySelectorAll('.msg.ai');var last=msgs[msgs.length-1];
+  if(last&&last.textContent.indexOf('正在思考')>-1)box.removeChild(last);
+}
+var AGENT_DEEP={
+  '班干部|班委|干部':function(){return '班干部梯队培养方案：\n1. 民主选举+岗位轮换（每学期竞聘上岗）；\n2. 明确职责清单（班长/学习/纪律/卫生/文体各司其职）；\n3. 每周班干部例会，复盘问题；\n4. “小师傅”制：老干部带新干部；\n5. 定期表彰，让管理成为成长机会。'},
+  '纪律|乱|吵|捣蛋':function(){return '课堂纪律改善策略：\n1. 共建班规：与学生共同制定，签名承诺；\n2. 信号管理：手势/铃声约定快速安静；\n3. 正向激励：积分银行记录守纪表现（本平台可直接操作）；\n4. 座位优化：用「智能排座」将活跃学生与沉稳学生搭配；\n5. 个别谈话：捣蛋背后多是求关注，先倾听再引导。'},
+  '积分|奖励|表彰|惩罚':function(){return '班级积分制度设计要点：\n1. 加分项：课堂发言+2、作业优秀+3、助人+5、获奖+5；\n2. 减分项：违纪-2~-5，就事论事不贴标签；\n3. 兑换机制：积分可兑换“免作业券”“同桌选择权”“图书管理员”等；\n4. 每周五小结班会公开表彰；\n5. 用本平台「积分银行」一键记录，期末自动生成评语素材。'},
+  '家长会|家校|沟通|家长':function(){return '开好家长会的关键：\n1. 会前：问卷收集家长最关心的问题；\n2. 内容：先报喜（用驾驶舱展示班级亮点数据）再议成长；\n3. 形式：小组圆桌讨论+优秀家长经验分享；\n4. 会后：发放每生“成长卡”（可用AI评语引擎生成）；\n5. 日常沟通：多用“进步+建议”句式，避免告状式沟通。'},
+  '后进生|学困|转化|帮扶':function(){return '后进生转化五步法：\n1. 建立信任：先找闪光点，公开表扬一次；\n2. 小目标：每天进步一点点，达成即积分奖励；\n3. 同伴帮扶：智能排座安排“小老师”同桌；\n4. 家校合力：与家长约定每日15分钟陪伴任务；\n5. 数据追踪：用学情预警观察趋势，及时调整策略。'},
+  '班会|主题|活动':function(){return '主题班会设计思路：\n1. 选题贴近学生：友谊、安全、感恩、科技、家乡文化（湛江红树林主题很受欢迎）；\n2. 形式多样：情景剧、辩论、小组任务、成果展示；\n3. 学生主导：轮值主持，教师退居指导；\n4. 结构：5分钟热身→20分钟主体→10分钟升华；\n5. 延伸：班会结论落地为班级公约或行动。'},
+  '心理|情绪|关爱|谈心':function(){return '学生心理关怀要点：\n1. 观察信号：成绩骤降、独来独往、情绪低落（本平台预警雷达可辅助发现）；\n2. 谈心技巧：私下进行，多听少说，先共情后建议；\n3. 建立班级“心语信箱”，匿名倾诉；\n4. 联动心理老师与家长，形成支持圈；\n5. 保护隐私，不给学生贴标签。'},
+  '评语|期末|素质报告':function(){return '期末评语撰写建议：\n1. 用事实说话：引用具体事例与积分记录；\n2. 结构：优点具体化+期望可执行；\n3. 避免空话：“该生表现良好”不如“你在运动会上主动帮同学拿水，让大家很感动”；\n4. 本平台「积分银行→AI生成评语」可基于数据自动生成初稿，再人工润色；\n5. 每生评语建议50-80字，温暖而真诚。'},
+  '座位|排座|换座位':function(){return '科学排座原则：\n1. 身高递减，保证后排视线；\n2. 近视学生前置；\n3. 男女均衡、性格互补；\n4. 学业强弱搭配，形成互助小组；\n5. 每月轮换一次，公平公开；\n本平台「智能排座」已内置这些约束，一键生成优化方案。'},
+  '时间|忙|减负|效率':function(){return '班主任减负清单：\n1. 事务性工作数字化：考勤、成绩、积分用本平台一键处理；\n2. 班干部分担：培养“班主任助理”；\n3. 模板化：家长通知、评语用AI生成初稿；\n4. 批量处理：固定时段集中处理班务，避免碎片化；\n5. 每天留20分钟纯陪学生的时间，这是最有价值的投入。'}
+};
+function localAnswer(q){
+  var out=null;var keys=Object.keys(AGENT_DEEP);
+  for(var i=0;i<keys.length;i++){
+    var kws=keys[i].split('|');
+    for(var j=0;j<kws.length;j++){if(q.indexOf(kws[j])>-1){out=AGENT_DEEP[keys[i]]();break}}
+    if(out)break;
+  }
+  if(!out&&(q.indexOf('你好')>-1||q.indexOf('你是谁')>-1))out='你好！我是班务智能体「云师」，专治班级管理各种难题：班干部培养、纪律、积分制度、家长会、评语……都可以问我。';
+  if(!out)out='关于「'+q+'」，建议从制度、人、数据三个维度思考：先立规则，再培养班干部自主管理，最后用数据追踪效果。你可以问我更具体的问题，比如“课堂纪律太乱怎么办”“如何设计积分制度”。';
+  return out;
+}
+function chatBox(){return $('chat-box')}
+function addMsg(role,text){
+  var box=chatBox();var div=document.createElement('div');div.className='msg '+role;
+  div.innerHTML='<div class="sender">'+(role==='ai'?'云师 · AI班务助手':'班主任')+'</div>'+esc(text).replace(/\n/g,'<br>');
+  box.appendChild(div);box.scrollTop=box.scrollHeight;
+}
+(function(){
+  addMsg('ai','你好，班主任！我是班务智能体「云师」。班干部培养、课堂纪律、积分制度、家长会、期末评语……班级管理的难题都可以问我。如需接入真实大模型，请点右上角「AI设置」。');
+  var tips=['班务数据化：用积分银行把“表现”变成可追踪的数据；','班干部是杠杆：培养好了，班主任减一半事务；','排座有讲究：身高+视力+互补搭配，用智能排座一键搞定。'];
+  $('tipCard').innerHTML=tips.map(function(t){return '<div style="margin:3px 0">· '+t+'</div>'}).join('');
+})();
+
+/* ================= 导出 ================= */
+function exportData(kind){
+  var data,content,name;
+  if(kind==='students'){content=S.students;name='班务云脑-学生档案.json'}
+  else if(kind==='seats'){
+    if(!S.seats){toast('请先生成座位表');return}
+    var rows=S.seats.grid.map(function(row,idx){
+      return '第'+(idx+1)+'排：'+row.map(function(id){var s=S.students.find(function(x){return x.id===id});return s?s.name:'空'}).join('，');
+    }).join('\n');
+    content=rows;name='班务云脑-座位表.txt';
+  }else{return}
+  var blob=new Blob([typeof content==='string'?content:JSON.stringify(content,null,2)],{type:'application/octet-stream'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  toast('已导出 '+name);
+}
+
+/* ================= 初始化 ================= */
+(function(){
+  var d=new Date();
+  $('sys-date').textContent=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+})();
+renderStudents();renderAttend();renderAttendStats();renderScore();renderPointsUI();renderSeats();refreshAll();
+if(!S.students.length){
+  setTimeout(function(){toast('首次使用：请到「学生档案」点击「载入示例班级」')},800);
+}
+</script>
+</body>
+</html>
