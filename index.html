@@ -176,6 +176,7 @@ td .name{color:var(--text);font-weight:600}
     <button data-view="score"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>成绩分析</button>
     <button data-view="points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>积分银行</button>
     <button data-view="seat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4v4H6zM14 10h4v4h-4z"/></svg>智能排座</button>
+    <button data-view="backup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>系统备份</button>
     <button data-view="agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>AI班务助手</button>
     <button data-view="about"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>关于作品</button>
   </nav>
@@ -252,14 +253,20 @@ td .name{color:var(--text);font-weight:600}
   <!-- 成绩 -->
   <section class="view" id="view-score">
     <div class="card" style="margin-bottom:14px">
-      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>成绩录入</h3>
-      <div class="sub">录入各科成绩，云脑自动计算总分均分、分布态势与进退步追踪</div>
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>成绩录入与导入</h3>
+      <div class="sub">支持手工录入、粘贴导入（可直接从Excel复制），云脑自动计算总分均分、分布态势与预警</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-        <div style="flex:1;min-width:120px"><label>科目</label><select id="sc-subject"><option>语文</option><option>数学</option><option>英语</option></select></div>
-        <div style="flex:1;min-width:120px"><label>考试名称</label><input id="sc-exam" placeholder="如：期中测试" value="期中测试"></div>
-        <button class="btn sm" onclick="openScoreForm()">录入成绩</button>
+        <div style="flex:1.4;min-width:180px"><label>选择考试（切换查看该次成绩）</label><select id="sc-exam" onchange="renderScore();renderScoreTable()"></select></div>
+        <div style="flex:1;min-width:110px"><label>分析科目</label><select id="sc-subject" onchange="renderScore()"><option>语文</option><option>数学</option><option>英语</option></select></div>
+        <button class="btn sm" onclick="openScoreForm()">手工录入</button>
+        <button class="btn sm violet" onclick="openImportForm()">📥 导入成绩</button>
         <button class="btn sm ghost" onclick="seedScore()">载入示例成绩</button>
       </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>成绩明细表</h3>
+      <div class="sub">点击表头排序（学号/各科/总分）；点击姓名查看该生历史成绩分析；「改分」可同时修改三科</div>
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table id="score-table"></table></div>
     </div>
     <div class="grid g2">
       <div class="card"><h3>成绩分布</h3><div class="sub">分档人数统计</div><div id="score-dist"></div></div>
@@ -326,6 +333,35 @@ td .name{color:var(--text);font-weight:600}
         <div class="sub" id="seat-info">生成后显示排列方案与算法说明</div>
         <div class="seat-map" id="seat-map"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- 系统备份 -->
+  <section class="view" id="view-backup">
+    <div class="grid g2">
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>全量备份</h3>
+        <div class="sub">一键导出全部班务数据（学生档案、考试与成绩、考勤、积分、座位表）为 JSON 备份文件，可存档或迁移到其他电脑</div>
+        <div id="backup-stat"></div>
+        <button class="btn btn-block" onclick="backupSystem()">⬇ 导出全量备份文件</button>
+      </div>
+      <div class="card">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 8 12 13 17 8"/><line x1="12" y1="13" x2="12" y2="21"/></svg>备份恢复</h3>
+        <div class="sub">选择之前导出的备份文件，一键恢复全部数据（恢复前请确认，当前数据将被覆盖）</div>
+        <label>选择备份文件（.json）</label>
+        <input type="file" id="restore-file" accept=".json,application/json" onchange="previewRestore(this)">
+        <div id="restore-preview" style="margin-top:10px"></div>
+        <button class="btn btn-block violet" id="restore-btn" onclick="importBackup()" disabled>⬆ 恢复全部数据</button>
+        <button class="btn danger btn-block" style="margin-top:8px" onclick="confirmWipe()">⚠ 清空全部数据</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>数据安全说明</h3>
+      <div class="block"><ul>
+        <li>所有数据仅保存在本机浏览器 localStorage 中，不上传任何服务器</li>
+        <li>建议每周导出一次备份文件，防止浏览器清理缓存导致数据丢失</li>
+        <li>备份文件为标准 JSON，包含全系统数据，可在其他电脑恢复</li>
+      </ul></div>
     </div>
   </section>
 
@@ -399,6 +435,7 @@ var S={
   points:JSON.parse(localStorage.getItem('bw_points')||'[]'),
   seats:JSON.parse(localStorage.getItem('bw_seats')||null),
   today:JSON.parse(localStorage.getItem('bw_today')||'{}'),
+  exams:JSON.parse(localStorage.getItem('bw_exams')||'[]'),
   save:function(k){localStorage.setItem('bw_'+k,JSON.stringify(this[k]))}
 };
 var $=function(id){return document.getElementById(id)};
@@ -411,25 +448,95 @@ document.querySelectorAll('.nav button').forEach(function(b){b.onclick=function(
 var SURNAMES=['陈','李','黄','林','郑','吴','杨','张','王','刘','谢','许','梁','宋','唐','许','韩','冯','邓','曹','彭','曾','肖','田','董','袁','蔡','蒋','余','杜','叶','苏','魏','吕','丁','任','沈','姚','卢','姜'];
 var GIVEN=['梓涵','子轩','浩宇','欣怡','梓萱','睿哲','雨桐','俊杰','思远','静姝','博文','若曦','明轩','嘉怡','志强','梦洁','天佑','雅琪','文博','佳琪','晨曦','子涵','雨泽','诗涵','伟宸','晓丽','海燕','志豪','慧敏','建国','雅静','子墨','思琪','宇航','可馨','雨欣','浩然','梦瑶','鑫磊','乐怡'];
 function seedDemo(){
-  S.students=[];
+  S.students=[];S.scores=[];S.exams=[];
+  /* 三次示例考试：含考试时间，成绩带进退步趋势 */
+  var EXAMS=[
+    {name:'2025秋季学期期末考试',time:'2026-01-16'},
+    {name:'2026春季学期期中考试',time:'2026-04-24'},
+    {name:'2026春季学期期末考试',time:'2026-07-03'}
+  ];
+  var SUBS=['语文','数学','英语'];
   for(var i=0;i<40;i++){
     var name=SURNAMES[i]+GIVEN[i];
+    var base=62+((i*7)%28);
+    /* 趋势系数：制造进步型/退步型/波动型学生 */
+    var trend={语文:(i%5-2),数学:((i*3)%7-3),英语:((i*11)%5-2)};
+    var last={};
     S.students.push({
       id:i+1,name:name,
       gender:i%2===0?'男':'女',
       height:128+((i*7)%28),
       vision:(i%9===0)?'近视':'正常',
-      scores:{语文:72+((i*13)%26),数学:70+((i*17)%30),英语:75+((i*11)%22)},
+      scores:{},
       dims:{学业:60+((i*7)%38),纪律:55+((i*11)%43),卫生:62+((i*13)%36),文体:58+((i*17)%40),劳动:65+((i*9)%33),品德:70+((i*19)%28)},
       points:(S.points.filter(function(p){return p.id===i+1}).reduce(function(a,p){return a+p.v},0))
     });
+    EXAMS.forEach(function(ex,ei){
+      SUBS.forEach(function(sub){
+        var v=Math.max(40,Math.min(100,Math.round(base+trend[sub]*ei*4+((i*ei*13)%5))));
+        S.scores.push({id:i+1,name:name,exam:ex.name,examTime:ex.time,subject:sub,score:v});
+        last[sub]=v;
+      });
+    });
+    S.students[i].scores=last;
   }
-  S.save('students');renderStudents();renderPointsUI();refreshAll();toast('已载入40人示例班级');
+  S.exams=EXAMS;
+  S.save('students');S.save('scores');S.save('exams');
+  renderStudents();renderPointsUI();renderExamSelect();renderScore();renderScoreTable();refreshAll();
+  toast('已载入40人示例班级（含3次考试完整成绩）');
 }
 function seedScore(){
-  if(!S.students.length){toast('请先载入示例班级');return}
-  S.scores=S.students.map(function(st){return {id:st.id,name:st.name,exam:$('sc-exam').value||'期中测试',subject:$('sc-subject').value,score:st.scores[$('sc-subject').value]||75}});
-  S.save('scores');renderScore();refreshAll();toast('示例成绩已载入');
+  if(!S.students.length){toast('请先到「学生档案」载入示例班级');return}
+  /* 无条件重建三次示例考试（兼容旧版数据，保证点击必有成绩） */
+  var EXAMS=[
+    {name:'2025秋季学期期末考试',time:'2026-01-16'},
+    {name:'2026春季学期期中考试',time:'2026-04-24'},
+    {name:'2026春季学期期末考试',time:'2026-07-03'}
+  ];
+  var SUBS=['语文','数学','英语'];
+  S.scores=[];
+  S.students.forEach(function(st,i){
+    var base=62+((i*7)%28);
+    var trend={语文:(i%5-2),数学:((i*3)%7-3),英语:((i*11)%5-2)};
+    var last={};
+    EXAMS.forEach(function(ex,ei){
+      SUBS.forEach(function(sub){
+        var v=Math.max(40,Math.min(100,Math.round(base+trend[sub]*ei*4+((i*ei*13)%5))));
+        S.scores.push({id:st.id,name:st.name,exam:ex.name,examTime:ex.time,subject:sub,score:v});
+        last[sub]=v;
+      });
+    });
+    st.scores=last;
+  });
+  S.exams=EXAMS;
+  S.save('students');S.save('scores');S.save('exams');
+  renderExamSelect(EXAMS[EXAMS.length-1].name);
+  renderScore();renderScoreTable();refreshAll();
+  toast('已载入3次考试完整成绩，当前显示：'+EXAMS[EXAMS.length-1].name);
+}
+/* 考试下拉：从S.exams生成选项 */
+function renderExamSelect(selectName){
+  var sel=$('sc-exam');if(!sel)return;
+  if(!S.exams.length){sel.innerHTML='<option value="">（暂无考试，请导入或载入示例）</option>';return}
+  var cur=selectName||sel.value||S.exams[S.exams.length-1].name;
+  var h=S.exams.map(function(e){return '<option value="'+esc(e.name)+'"'+(e.name===cur?' selected':'')+'>'+esc(e.name)+'</option>'}).join('');
+  sel.innerHTML=h;
+}
+/* 读取某学生某次考试的各科成绩 */
+function examScoresOf(id,exam){
+  var r={};
+  S.scores.forEach(function(x){if(x.id===id&&x.exam===exam)r[x.subject]=x.score});
+  return r;
+}
+/* 当前选中考试 */
+function currentExam(){var v=$('sc-exam').value;return v||'';}
+/* 最近一次有成绩的考试 */
+function latestExamName(){
+  if(!S.exams.length)return null;
+  for(var i=S.exams.length-1;i>=0;i--){
+    if(S.scores.some(function(r){return r.exam===S.exams[i].name}))return S.exams[i].name;
+  }
+  return null;
 }
 
 /* ================= 学生档案 ================= */
@@ -552,43 +659,342 @@ function renderAttendStats(){
 }
 
 /* ================= 成绩 ================= */
+var scSortKey='total',scSortDesc=true;
+var SUBS=['语文','数学','英语'];
+/* 手工录入：按当前考试+科目 */
 function openScoreForm(){
   if(!S.students.length){toast('请先载入示例班级');return}
+  var exam=currentExam();
+  if(!exam){toast('请先在「导入成绩」中建立一次考试');openImportForm();return}
+  var sub=$('sc-subject').value;
   var m=$('modal-box');
-  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>批量录入成绩 — '+esc($('sc-subject').value)+'</h3>'
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>手工录入成绩 — '+esc(exam)+' · '+esc(sub)+'</h3>'
     +'<div style="max-height:420px;overflow-y:auto">'
-    +S.students.map(function(s){return '<div class="rank-item"><span class="nm">'+esc(s.name)+'</span><input type="number" id="scin-'+s.id+'" value="'+(s.scores[$('sc-subject').value]||75)+'" style="width:90px"></div>'}).join('')
+    +S.students.map(function(s){var sc=examScoresOf(s.id,exam);return '<div class="rank-item"><span class="nm">'+esc(s.name)+'</span><input type="number" id="scin-'+s.id+'" value="'+(sc[sub]!=null?sc[sub]:0)+'" style="width:90px" min="0" max="100"></div>'}).join('')
     +'</div><button class="btn btn-block" onclick="saveScores()">保存全班成绩</button>';
   $('modal-mask').classList.add('show');
 }
-function saveScores(){
-  var sub=$('sc-subject').value,exam=$('sc-exam').value||'测试';
+/* ============ 独立导入成绩界面：考试时间+考试名称+粘贴导入 ============ */
+function openImportForm(){
+  if(!S.students.length){toast('请先载入示例班级');return}
+  var m=$('modal-box');
+  var examOpts='<option value="__new__">＋ 新建考试…</option>'
+    +S.exams.map(function(e){return '<option value="'+esc(e.name)+'">'+esc(e.name)+'</option>'}).join('');
+  var today=new Date(),td=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>📥 导入成绩</h3>'
+    +'<p class="sub" style="font-size:12px;margin-bottom:10px">填写考试信息，粘贴成绩数据（支持直接从Excel复制），一键导入。兼容两种格式：<b style="color:var(--cyan)">姓名 分数</b>（单科）或 <b style="color:var(--cyan)">姓名 语文 数学 英语</b>（三科一次导入），分隔符支持Tab、逗号、空格、顿号。</p>'
+    +'<label>考试名称</label><select id="imp-exam" onchange="impExamChange()">'+examOpts+'</select>'
+    +'<input id="imp-exam-new" placeholder="输入新考试名称，如：2026秋季学期期中考试" style="display:none;margin-top:6px">'
+    +'<label>考试时间</label><input id="imp-time" type="date" value="'+td+'">'
+    +'<label>科目（仅单科格式时使用；三科格式自动忽略）</label><select id="imp-subject"><option>语文</option><option>数学</option><option>英语</option></select>'
+    +'<label>粘贴成绩数据</label><textarea id="imp-text" rows="10" placeholder="单科格式：\n陈梓涵 92\n李子轩 85\n\n三科格式（从Excel复制姓名+三科成绩）：\n陈梓涵\t92\t88\t95\n李子轩\t85\t90\t82"></textarea>'
+    +'<div style="margin-top:10px;display:flex;gap:8px"><button class="btn" onclick="doImport()">解析并导入</button><button class="btn ghost" onclick="closeModal()">取消</button></div>'
+    +'<div id="imp-result" style="margin-top:12px"></div>';
+  $('modal-mask').classList.add('show');
+  setTimeout(function(){impExamChange()},50);
+}
+function impExamChange(){
+  var v=$('imp-exam').value;
+  var isNew=(v==='__new__');
+  $('imp-exam-new').style.display=isNew?'block':'none';
+  if(!isNew){
+    var ex=S.exams.find(function(e){return e.name===v});
+    if(ex&&ex.time)$('imp-time').value=ex.time;
+  }
+}
+function doImport(){
+  /* 确定考试名称与时间 */
+  var sel=$('imp-exam').value;
+  var exam,examTime=$('imp-time').value||'';
+  if(sel==='__new__'){
+    exam=$('imp-exam-new').value.trim();
+    if(!exam){toast('请输入新考试名称');return}
+    if(S.exams.some(function(e){return e.name===exam})){toast('该考试已存在，请在下拉中选择它');return}
+  }else{exam=sel}
+  var txt=$('imp-text').value.trim();
+  if(!txt){toast('请先粘贴成绩数据');return}
+  var lines=txt.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean);
+  var ok=0,fail=[],multiCnt=0;
+  var pending=[]; /* {id,name,scores:{}} */
+  lines.forEach(function(line){
+    var parts=line.split(/[\t,，、\s]+/).filter(Boolean);
+    if(parts.length<2){fail.push(line);return}
+    var name=parts[0];
+    var st=S.students.find(function(s){return s.name===name});
+    if(!st){fail.push(name+'（未找到该学生）');return}
+    var nums=parts.slice(1).map(parseFloat);
+    if(nums.some(isNaN)){fail.push(line);return}
+    var rec={id:st.id,name:name,scores:{}};
+    if(nums.length>=3){
+      /* 三科格式 */
+      rec.scores={'语文':nums[0],'数学':nums[1],'英语':nums[2]};multiCnt++;
+    }else{
+      /* 单科格式 */
+      rec.scores[$('imp-subject').value]=nums[0];
+    }
+    pending.push(rec);ok++;
+  });
+  if(ok>0){
+    /* 考试登记（新建或更新时间） */
+    if(!S.exams.some(function(e){return e.name===exam})){S.exams.push({name:exam,time:examTime});}
+    else{var ex=S.exams.find(function(e){return e.name===exam});if(examTime)ex.time=examTime;}
+    /* 归档：移除同考试相关旧记录再写入，避免重复累积 */
+    S.scores=S.scores.filter(function(r){return r.exam!==exam});
+    pending.forEach(function(p){
+      for(var sub in p.scores){
+        var v=Math.max(0,Math.min(100,Math.round(p.scores[sub])));
+        S.scores.push({id:p.id,name:p.name,exam:exam,examTime:examTime,subject:sub,score:v});
+      }
+    });
+    /* 更新学生最近成绩缓存（若导入的是最新考试） */
+    syncLatestScores();
+    S.save('exams');S.save('scores');S.save('students');
+    renderExamSelect(exam);renderScore();renderScoreTable();refreshAll();
+  }
+  var html='<div class="block" style="border-left:3px solid '+(ok?'var(--green)':'var(--red)')+'"><b>导入结果 — '+esc(exam)+'</b><ul>'
+    +'<li>✅ 成功导入：'+ok+' 人'+(multiCnt?'（其中三科格式 '+multiCnt+' 人）':'')+'</li>'
+    +(fail.length?'<li>⚠ 未匹配/格式错误：'+fail.length+' 条 — '+fail.slice(0,5).join('；')+(fail.length>5?' 等':'')+'</li>':'')
+    +'<li>考试时间：'+(examTime||'未填写')+'</li>'
+    +'</ul></div>';
+  $('imp-result').innerHTML=html;
+  toast(ok?('已导入 '+ok+' 人成绩（'+exam+'）'):('导入失败，请检查格式'));
+}
+/* 同步学生最近考试缓存 */
+function syncLatestScores(){
+  var le=latestExamName();
+  if(!le)return;
   S.students.forEach(function(s){
-    var v=+$('scin-'+s.id).value||0;
-    s.scores[sub]=v;
+    var sc=examScoresOf(s.id,le);
+    if(Object.keys(sc).length)s.scores=sc;
+  });
+  S.save('students');
+}
+function saveScores(){
+  var sub=$('sc-subject').value,exam=currentExam();
+  if(!exam){toast('无选中考试');return}
+  S.students.forEach(function(s){
+    var el=$('scin-'+s.id);if(!el)return;
+    var v=Math.max(0,Math.min(100,+el.value||0));
+    S.scores=S.scores.filter(function(r){return !(r.exam===exam&&r.subject===sub&&r.id===s.id)});
     S.scores.push({id:s.id,name:s.name,exam:exam,subject:sub,score:v});
   });
-  S.save('students');S.save('scores');closeModal();renderScore();refreshAll();toast('成绩已保存');
+  syncLatestScores();
+  S.save('scores');closeModal();renderScore();renderScoreTable();refreshAll();toast('成绩已保存');
 }
+/* 成绩明细表：当前考试各科+总分+排名，学号/科目/总分表头可排序，姓名可点击 */
+function renderScoreTable(){
+  var t=$('score-table');if(!t)return;
+  if(!S.students.length){t.innerHTML='<tr><td class="empty">请先载入示例班级</td></tr>';return}
+  var exam=currentExam();
+  var h='<tr><th style="cursor:pointer" onclick="scSort(\'id\')">学号'+(scSortKey==='id'?(scSortDesc?' ↓':' ↑'):'')+'</th>'
+    +'<th>姓名</th>'
+    +SUBS.map(function(sub){return '<th style="cursor:pointer" onclick="scSort(\''+sub+'\')">'+sub+(scSortKey===sub?(scSortDesc?' ↓':' ↑'):'')+'</th>'}).join('')
+    +'<th style="cursor:pointer" onclick="scSort(\'total\')">总分'+(scSortKey==='total'?(scSortDesc?' ↓':' ↑'):'')+'</th><th>排名</th><th>操作</th></tr>';
+  if(!exam||!S.scores.some(function(r){return r.exam===exam})){
+    t.innerHTML=h+'<tr><td colspan="7" class="empty">该考试暂无成绩 — 点击「导入成绩」或「载入示例成绩」</td></tr>';return;
+  }
+  var arr=S.students.map(function(s){
+    var sc=examScoresOf(s.id,exam);
+    var total=SUBS.reduce(function(a,sub){return a+(+sc[sub]||0)},0);
+    var has=SUBS.some(function(sub){return sc[sub]!=null});
+    return {s:s,sc:sc,total:total,has:has};
+  });
+  var rankMap={};
+  arr.slice().sort(function(a,b){return b.total-a.total}).forEach(function(x,i){if(x.has)rankMap[x.s.id]=Object.keys(rankMap).length+1});
+  var sorted=arr.slice().sort(function(a,b){
+    var va,vb;
+    if(scSortKey==='total'){va=a.total;vb=b.total}
+    else if(scSortKey==='id'){va=a.s.id;vb=b.s.id}
+    else{va=+a.sc[scSortKey]||0;vb=+b.sc[scSortKey]||0}
+    return scSortDesc?vb-va:va-vb;
+  });
+  sorted.forEach(function(x){
+    var s=x.s;
+    h+='<tr><td>'+s.id+'</td>'
+      +'<td><span class="name" style="cursor:pointer;text-decoration:underline dotted" onclick="showStudentScores('+s.id+')" title="点击查看历史成绩分析">'+esc(s.name)+'</span></td>'
+      +SUBS.map(function(sub){
+        var v=x.sc[sub];
+        if(v==null)return '<td style="color:var(--text3)">—</td>';
+        var c=v>=90?'var(--green)':v>=75?'var(--cyan)':v>=60?'var(--amber)':'var(--red)';
+        return '<td><b style="color:'+c+'">'+v+'</b></td>';
+      }).join('')
+      +'<td><b style="color:var(--cyan)">'+(x.has?x.total:'—')+'</b></td>'
+      +'<td>'+(rankMap[s.id]?'<span class="tag '+(rankMap[s.id]<=3?'amber':'')+'">第'+rankMap[s.id]+'名</span>':'—')+'</td>'
+      +'<td><button class="btn sm ghost" onclick="editOneScore('+s.id+')">改分</button></td></tr>';
+  });
+  t.innerHTML=h;
+}
+function scSort(key){
+  if(scSortKey===key){scSortDesc=!scSortDesc}
+  else{scSortKey=key;scSortDesc=(key==='id'?false:true)}/* 学号默认升序，分数类默认降序 */
+  renderScoreTable();
+}
+/* ============ 点击姓名：该生各科成绩+历史成绩分析 ============ */
+function showStudentScores(id){
+  var s=S.students.find(function(x){return x.id===id});if(!s)return;
+  var exam=currentExam();
+  var m=$('modal-box');
+  var h='<span class="close" onclick="closeModal()">×</span><h3>'+esc(s.name)+' · 成绩档案与趋势分析</h3>';
+  /* 当前考试概况 */
+  if(exam){
+    var sc=examScoresOf(s.id,exam);
+    var total=SUBS.reduce(function(a,sub){return a+(+sc[sub]||0)},0);
+    /* 班级排名 */
+    var rank=0,my=total;
+    S.students.forEach(function(x){
+      var xsc=examScoresOf(x.id,exam);
+      var xt=SUBS.reduce(function(a,sub){return a+(+xsc[sub]||0)},0);
+      if(xt>my)rank++;
+    });
+    rank=rank+1;
+    h+='<div class="block"><b>当前考试：'+esc(exam)+'</b><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">'
+      +SUBS.map(function(sub){var v=sc[sub];var c=v==null?'var(--text3)':(v>=90?'var(--green)':v>=75?'var(--cyan)':v>=60?'var(--amber)':'var(--red)');return '<span class="tag">'+sub+' <b style="color:'+c+'">'+(v==null?'—':v)+'</b></span>'}).join('')
+      +'<span class="tag">总分 <b style="color:var(--cyan)">'+total+'</b></span>'
+      +'<span class="tag amber">班级第'+rank+'名</span></div></div>';
+  }
+  /* 历史成绩表 */
+  var exams=(S.exams.length?S.exams.slice():uniqueExamsFromScores());
+  if(!exams.length){
+    h+='<div class="empty">暂无历史考试数据</div>';
+  }else{
+    h+='<div class="block"><b>历史成绩追踪</b><div style="overflow-x:auto;margin-top:8px"><table><tr><th>考试</th><th>时间</th>'+SUBS.map(function(x){return '<th>'+x+'</th>'}).join('')+'<th>总分</th><th>趋势</th></tr>';
+    var totals=[];
+    exams.forEach(function(ex){
+      var r={};
+      S.scores.forEach(function(x){if(x.id===id&&x.exam===ex.name)r[x.subject]=x.score});
+      var t=SUBS.reduce(function(a,sub){return a+(+r[sub]||0)},0);
+      totals.push({ex:ex,t:t,r:r,has:SUBS.some(function(sub){return r[sub]!=null})});
+    });
+    totals.forEach(function(x,i){
+      var prev=i>0?totals[i-1]:null;
+      var trend='';
+      if(prev&&prev.has&&x.has){
+        var d=x.t-prev.t;
+        trend=d>0?'<span class="tag green">↑ 进步'+d+'分</span>':d<0?'<span class="tag red">↓ 退步'+(-d)+'分</span>':'<span class="tag">持平</span>';
+      }
+      h+='<tr><td><span class="name">'+esc(x.ex.name)+'</span></td><td style="font-size:11px">'+esc(x.ex.time||'—')+'</td>'
+        +SUBS.map(function(sub){var v=x.r[sub];var c=v==null?'var(--text3)':(v>=90?'var(--green)':v>=75?'var(--cyan)':v>=60?'var(--amber)':'var(--red)');return '<td><b style="color:'+c+'">'+(v==null?'—':v)+'</b></td>'}).join('')
+        +'<td><b style="color:var(--cyan)">'+(x.has?x.t:'—')+'</b></td><td>'+trend+'</td></tr>';
+    });
+    h+='</table></div></div>';
+    /* 趋势分析与折线图 */
+    var valid=totals.filter(function(x){return x.has});
+    if(valid.length>=2){
+      var first=valid[0].t,last=valid[valid.length-1].t,d=last-first;
+      var trendTxt=d>5?'总体呈上升态势，学习状态良好，继续保持':d<-5?'总体有所下滑，建议关注近期学习状态与习惯':'总体保持稳定';
+      h+='<div class="block" style="border-left:3px solid '+(d>5?'var(--green)':d<-5?'var(--red)':'var(--cyan)')+'"><b>云脑趋势研判</b><ul>'
+        +'<li>'+trendTxt+'（首末总分 '+(d>0?'+':'')+d+' 分）</li>';
+      /* 各科趋势 */
+      SUBS.forEach(function(sub){
+        var fv=valid[0].r[sub],lv=valid[valid.length-1].r[sub];
+        if(fv!=null&&lv!=null){var sd=lv-fv;h+='<li>'+sub+'：'+(sd>0?'提升'+sd+'分':sd<0?'下降'+(-sd)+'分':'持平')+'</li>';}
+      });
+      h+='</ul></div>';
+      h+='<div style="text-align:center"><canvas id="sc-trend" width="480" height="200"></canvas><div style="font-size:11px;color:var(--text3)">总分趋势折线图</div></div>';
+    }
+  }
+  m.innerHTML=h;
+  $('modal-mask').classList.add('show');
+  setTimeout(function(){drawTrend('sc-trend',totals.filter(function(x){return x.has}))},50);
+}
+/* 从成绩记录提取考试列表（兼容无exams元数据的旧数据） */
+function uniqueExamsFromScores(){
+  var seen={},list=[];
+  S.scores.forEach(function(r){if(!seen[r.exam]){seen[r.exam]=1;list.push({name:r.exam,time:r.examTime||''})}});
+  return list;
+}
+/* 总分趋势折线图 */
+function drawTrend(cvId,totals){
+  var cv=$(cvId);if(!cv)return;
+  var ctx=cv.getContext&&cv.getContext('2d');if(!ctx)return;
+  var W=cv.width,H=cv.height,pad=34;
+  ctx.clearRect(0,0,W,H);
+  if(!totals.length)return;
+  var vals=totals.map(function(x){return x.t});
+  var mx=Math.max.apply(null,vals)+8,mn=Math.min.apply(null,vals)-8;
+  var n=totals.length;
+  var X=function(i){return pad+(W-2*pad)*(n===1?0.5:i/(n-1))};
+  var Y=function(v){return H-pad-(H-2*pad)*((v-mn)/(mx-mn||1))};
+  /* 网格 */
+  ctx.strokeStyle='rgba(42,58,110,.6)';ctx.fillStyle='#64748b';ctx.font='10px sans-serif';
+  for(var g=0;g<=3;g++){
+    var v=mn+(mx-mn)*g/3,y=Y(v);
+    ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();
+    ctx.textAlign='right';ctx.fillText(Math.round(v),pad-4,y+3);
+  }
+  /* 折线 */
+  ctx.beginPath();
+  totals.forEach(function(x,i){var px=X(i),py=Y(x.t);i?ctx.lineTo(px,py):ctx.moveTo(px,py)});
+  ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.shadowColor='rgba(34,211,238,.5)';ctx.shadowBlur=6;ctx.stroke();ctx.shadowBlur=0;
+  /* 点与标签 */
+  totals.forEach(function(x,i){
+    var px=X(i),py=Y(x.t);
+    ctx.beginPath();ctx.arc(px,py,4,0,7);ctx.fillStyle='#22d3ee';ctx.fill();
+    ctx.fillStyle='#94a3b8';ctx.textAlign='center';ctx.font='9px sans-serif';
+    var label=x.ex.name.length>9?x.ex.name.slice(0,9)+'…':x.ex.name;
+    ctx.fillText(label,px,H-pad+14);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(x.t,px,py-8);
+  });
+}
+/* ============ 改分：三科同时修改 ============ */
+function editOneScore(id){
+  var s=S.students.find(function(x){return x.id===id});if(!s)return;
+  var exam=currentExam();
+  if(!exam){toast('请先选择考试');return}
+  var sc=examScoresOf(s.id,exam);
+  var m=$('modal-box');
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>修改 '+esc(s.name)+' 的成绩 — '+esc(exam)+'</h3>'
+    +'<p class="sub" style="font-size:12px">三科分数可同时修改（0-100）</p>'
+    +SUBS.map(function(sub){return '<label>'+sub+'分数</label><input type="number" id="one-'+sub+'" min="0" max="100" value="'+(sc[sub]!=null?sc[sub]:0)+'">'}).join('')
+    +'<button class="btn btn-block" onclick="saveOneScore('+s.id+')">保存全部科目</button>';
+  $('modal-mask').classList.add('show');
+}
+function saveOneScore(id){
+  var s=S.students.find(function(x){return x.id===id});if(!s)return;
+  var exam=currentExam();
+  if(!exam){toast('请先选择考试');return}
+  SUBS.forEach(function(sub){
+    var v=Math.max(0,Math.min(100,+$('one-'+sub).value||0));
+    S.scores=S.scores.filter(function(r){return !(r.exam===exam&&r.subject===sub&&r.id===id)});
+    S.scores.push({id:id,name:s.name,exam:exam,subject:sub,score:v});
+  });
+  syncLatestScores();
+  S.save('scores');closeModal();renderScore();renderScoreTable();refreshAll();toast(s.name+' 三科成绩已更新（'+exam+'）');
+}
+/* 成绩分布+预警（按当前考试） */
 function renderScore(){
   if(!S.students.length){$('score-dist').innerHTML=$('score-alerts').innerHTML='<div class="empty">请先载入示例班级与成绩</div>';return}
+  var exam=currentExam();
+  if(!exam||!S.scores.some(function(r){return r.exam===exam})){$('score-dist').innerHTML=$('score-alerts').innerHTML='<div class="empty">该考试暂无成绩</div>';return}
   var sub=$('sc-subject').value;
-  var arr=S.students.map(function(s){return s.scores[sub]||0});
+  var arr=S.students.map(function(s){return +(examScoresOf(s.id,exam)[sub]||0)});
   var avg=Math.round(arr.reduce(function(a,b){return a+b},0)/arr.length);
   var bins=[90,80,70,60,0],labs=['90-100','80-89','70-79','60-69','<60'],cnt=[0,0,0,0,0],colors=['#34d399','#22d3ee','#3b82f6','#fbbf24','#f87171'];
   arr.forEach(function(v){for(var i=0;i<bins.length;i++){if(v>=bins[i]){cnt[i]++;break}}});
-  var h=labs.map(function(l,i){return '<div class="bar-row"><div class="label">'+l+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(cnt[i]/arr.length*100)+'%;background:linear-gradient(90deg,'+colors[i]+','+colors[i]+'aa)">'+cnt[i]+'人</div></div></div>'}).join('');
+  var h='<div style="font-size:11px;color:var(--cyan);margin-bottom:8px">📊 '+esc(exam)+' · '+esc(sub)+'</div>';
+  h+=labs.map(function(l,i){return '<div class="bar-row"><div class="label">'+l+'</div><div class="bar-track"><div class="bar-fill" style="width:'+(cnt[i]/arr.length*100)+'%;background:linear-gradient(90deg,'+colors[i]+','+colors[i]+'aa)">'+cnt[i]+'人</div></div></div>'}).join('');
   h+='<div style="margin-top:10px;font-size:12px;color:var(--text2)">班级平均分：<b style="color:var(--cyan);font-size:16px;font-family:monospace">'+avg+'</b>　最高：'+Math.max.apply(null,arr)+'　最低：'+Math.min.apply(null,arr)+'</div>';
   $('score-dist').innerHTML=h;
-  /* 预警：偏科+低分 */
+  /* 预警：偏科+学困+退步（对比上一次考试） */
   var alerts=[];
+  /* 计算上一次考试（按S.exams顺序） */
+  var exams=(S.exams.length?S.exams:uniqueExamsFromScores());
+  var ei=-1;exams.forEach(function(e,i){if(e.name===exam)ei=i});
+  var prevExam=ei>0?exams[ei-1].name:null;
   S.students.forEach(function(s){
-    var sc=s.scores;var vals=[sc['语文'],sc['数学'],sc['英语']].filter(Boolean);
+    var sc=examScoresOf(s.id,exam);
+    var vals=SUBS.map(function(x){return sc[x]}).filter(function(v){return v!=null});
     if(vals.length===3){
       var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals);
-      if(mx-mn>=20){var subs=['语文','数学','英语'];var weak=subs[vals.indexOf(mn)];alerts.push({n:s.name,t:'偏科预警',d:weak+'仅'+mn+'分，与最高科差距'+(mx-mn)+'分',lv:'amber'})}
+      if(mx-mn>=20){var weak=SUBS[vals.indexOf(mn)];alerts.push({n:s.name,t:'偏科预警',d:weak+'仅'+mn+'分，与最高科差距'+(mx-mn)+'分',lv:'amber'})}
     }
-    if((sc[sub]||100)<60)alerts.push({n:s.name,t:'学困预警',d:sub+'成绩 '+(sc[sub])+' 分，需重点帮扶',lv:'red'});
+    if(sc[sub]!=null&&sc[sub]<60)alerts.push({n:s.name,t:'学困预警',d:sub+'成绩 '+sc[sub]+' 分，需重点帮扶',lv:'red'});
+    /* 退步预警：总分较上次下降≥10 */
+    if(prevExam){
+      var t0=SUBS.reduce(function(a,x){return a+(+examScoresOf(s.id,prevExam)[x]||0)},0);
+      var t1=SUBS.reduce(function(a,x){return a+(+sc[x]||0)},0);
+      if(t0>0&&t1-t0<=-10)alerts.push({n:s.name,t:'退步预警',d:'总分较上次下降'+(t0-t1)+'分，建议谈心了解',lv:'red'});
+    }
   });
   var ah=alerts.length?alerts.map(function(a){return '<div class="block" style="border-left:3px solid '+(a.lv==='red'?'var(--red)':'var(--amber)')+'"><b>'+esc(a.n)+' · '+a.t+'</b><div style="font-size:12px;color:var(--text2);margin-top:3px">'+a.d+'</div></div>'}).join(''):'<div class="empty">暂无预警，班级学情平稳 ✦</div>';
   $('score-alerts').innerHTML=ah;
@@ -747,10 +1153,14 @@ function refreshAll(){
   var avgRate=rates.length?Math.round(rates.reduce(function(a,b){return a+b},0)/rates.length):100;
   if(!Object.keys(S.attend).length)avgRate=100;
   $('kpi-attend').textContent=avgRate+'%';
-  /* 均分 */
-  var subs=['语文','数学','英语'];
+  /* 均分：优先取最近一次考试 */
+  var le=latestExamName();
   var allavg=[];
-  subs.forEach(function(sub){var a=S.students.map(function(s){return s.scores[sub]||0});if(a.length)allavg.push(Math.round(a.reduce(function(x,y){return x+y},0)/a.length))});
+  if(le){
+    SUBS.forEach(function(sub){var a=S.students.map(function(s){return +(examScoresOf(s.id,le)[sub]||0)});if(a.length)allavg.push(Math.round(a.reduce(function(x,y){return x+y},0)/a.length))});
+  }else{
+    SUBS.forEach(function(sub){var a=S.students.map(function(s){return +(s.scores[sub]||0)});if(a.length)allavg.push(Math.round(a.reduce(function(x,y){return x+y},0)/a.length))});
+  }
   $('kpi-avg').textContent=allavg.length?Math.round(allavg.reduce(function(a,b){return a+b},0)/allavg.length):'—';
   /* 积分 */
   var tp=S.points.reduce(function(a,p){return a+Math.abs(p.v)},0);
@@ -916,12 +1326,98 @@ function exportData(kind){
   toast('已导出 '+name);
 }
 
+/* ================= 系统备份与恢复 ================= */
+var RESTORE_DATA=null;
+function renderBackupStat(){
+  var el=$('backup-stat');if(!el)return;
+  var examCnt=S.exams.length||uniqueExamsFromScores().length;
+  el.innerHTML='<div class="block"><b>当前数据概况</b><ul>'
+    +'<li>学生档案：'+S.students.length+' 人</li>'
+    +'<li>考试场次：'+examCnt+' 次</li>'
+    +'<li>成绩记录：'+S.scores.length+' 条</li>'
+    +'<li>考勤归档：'+Object.keys(S.attend).length+' 天</li>'
+    +'<li>积分流水：'+S.points.length+' 条</li>'
+    +'<li>座位方案：'+(S.seats?'已生成（'+S.seats.cols+'列×'+S.seats.rows+'行）':'未生成')+'</li>'
+    +'</ul></div>';
+}
+function backupSystem(){
+  var data={
+    app:'班务云脑',version:2,date:new Date().toISOString(),
+    students:S.students,attend:S.attend,scores:S.scores,
+    points:S.points,seats:S.seats,today:S.today,exams:S.exams
+  };
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  var d=new Date();
+  a.download='班务云脑-全量备份-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
+  a.click();
+  toast('全量备份已导出（含全部'+(S.students.length)+'名学生数据）');
+}
+function previewRestore(input){
+  var file=input.files&&input.files[0];
+  var btn=$('restore-btn'),pv=$('restore-preview');
+  RESTORE_DATA=null;btn.disabled=true;
+  if(!file){pv.innerHTML='';return}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var d=JSON.parse(e.target.result);
+      if(!d||!Array.isArray(d.students)){pv.innerHTML='<div class="block" style="border-left:3px solid var(--red)"><b>⚠ 文件格式不正确</b><div style="font-size:12px;color:var(--text2);margin-top:4px">不是有效的班务云脑备份文件</div></div>';return}
+      RESTORE_DATA=d;btn.disabled=false;
+      var examCnt=(d.exams&&d.exams.length)||(d.scores?uniqueExamNames(d.scores).length:0);
+      pv.innerHTML='<div class="block" style="border-left:3px solid var(--green)"><b>✓ 备份文件识别成功</b><ul>'
+        +'<li>导出时间：'+(d.date||'—').slice(0,10)+'</li>'
+        +'<li>学生：'+d.students.length+' 人　考试：'+examCnt+' 次　成绩：'+(d.scores||[]).length+' 条</li>'
+        +'<li>考勤：'+Object.keys(d.attend||{}).length+' 天　积分：'+(d.points||[]).length+' 条</li>'
+        +'</ul><div style="font-size:11px;color:var(--amber)">⚠ 点击「恢复全部数据」将覆盖当前数据</div></div>';
+    }catch(err){
+      pv.innerHTML='<div class="block" style="border-left:3px solid var(--red)"><b>⚠ 文件解析失败</b><div style="font-size:12px;color:var(--text2);margin-top:4px">'+esc(err.message)+'</div></div>';
+    }
+  };
+  reader.readAsText(file,'utf-8');
+}
+function uniqueExamNames(scores){
+  var seen={},list=[];
+  (scores||[]).forEach(function(r){if(!seen[r.exam]){seen[r.exam]=1;list.push(r.exam)}});
+  return list;
+}
+function importBackup(){
+  if(!RESTORE_DATA){toast('请先选择有效备份文件');return}
+  var d=RESTORE_DATA;
+  S.students=d.students||[];
+  S.attend=d.attend||{};
+  S.scores=d.scores||[];
+  S.points=d.points||[];
+  S.seats=d.seats||null;
+  S.today=d.today||{};
+  S.exams=d.exams||[];
+  ['students','attend','scores','points','seats','today','exams'].forEach(function(k){S.save(k)});
+  /* 全量刷新 */
+  renderStudents();renderAttend();renderAttendStats();renderExamSelect();renderScore();renderScoreTable();renderPointsUI();renderSeats();refreshAll();renderBackupStat();
+  RESTORE_DATA=null;$('restore-btn').disabled=true;$('restore-preview').innerHTML='';$('restore-file').value='';
+  toast('✓ 全部数据已恢复（'+S.students.length+'名学生）');
+}
+function confirmWipe(){
+  var m=$('modal-box');
+  m.innerHTML='<span class="close" onclick="closeModal()">×</span><h3>⚠ 清空全部数据</h3>'
+    +'<p class="sub" style="font-size:12px">此操作将删除本机保存的全部班务数据（学生、成绩、考勤、积分、座位）。建议先导出全量备份再清空。确定继续吗？</p>'
+    +'<div style="display:flex;gap:8px;margin-top:14px"><button class="btn danger" onclick="doWipe()">确认清空</button><button class="btn ghost" onclick="closeModal()">取消</button></div>';
+  $('modal-mask').classList.add('show');
+}
+function doWipe(){
+  ['students','attend','scores','points','seats','today','exams'].forEach(function(k){localStorage.removeItem('bw_'+k)});
+  S.students=[];S.attend={};S.scores=[];S.points=[];S.seats=null;S.today={};S.exams=[];
+  closeModal();
+  renderStudents();renderAttend();renderAttendStats();renderExamSelect();renderScore();renderScoreTable();renderPointsUI();renderSeats();refreshAll();renderBackupStat();
+  toast('已清空全部数据');
+}
+
 /* ================= 初始化 ================= */
 (function(){
   var d=new Date();
   $('sys-date').textContent=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 })();
-renderStudents();renderAttend();renderAttendStats();renderScore();renderPointsUI();renderSeats();refreshAll();
+renderStudents();renderAttend();renderAttendStats();renderExamSelect();renderScore();renderScoreTable();renderPointsUI();renderSeats();refreshAll();renderBackupStat();
 if(!S.students.length){
   setTimeout(function(){toast('首次使用：请到「学生档案」点击「载入示例班级」')},800);
 }
